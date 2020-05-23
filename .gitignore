@@ -35,12 +35,14 @@
 *.aux
 *.log
 *.gz
+*.toc
 
 #the application
 magtest
 
 #dirs
 obj/
+bin/
 tmpfle/
 cMag/cMag/tmpfle/
 
