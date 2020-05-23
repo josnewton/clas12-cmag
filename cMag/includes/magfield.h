@@ -9,6 +9,7 @@
 #define magfield_h
 
 
+#include "maggrid.h"
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -25,7 +26,6 @@
 typedef struct fieldmapheader *FieldMapHeaderPtr;
 typedef struct magneticfield *MagneticFieldPtr;
 typedef struct fieldmetrics *FieldMetricsPtr;
-typedef struct grid *GridPtr;
 
 //some strings for prints
 extern const char *csLabels[];
@@ -64,16 +64,6 @@ typedef struct fieldvalue {
     float b3; //3rd component (Bz for solenoid and also for torus)
 } FieldValue;
 
-//holds the uniformly spaced grid values
-typedef struct grid {
-        char *name;    //the name of the coordinate, e.g., "phi".
-        float minVal;  //the min value of the coordinate
-        float maxVal;  //the max value of the coordinate
-        unsigned int num; //the number of vals including the ends
-        float delta; // (max-min)/(n-1)
-        float *values; //values of the coordinates
-} Grid;
-
 //holds some metrics of the field
 typedef struct fieldmetrics {
   unsigned int maxFieldIndex; //the index where we find the max field value
@@ -93,19 +83,15 @@ typedef struct magneticfield {
     int numValues;  //total number of field values
     GridPtr gridPtr[3];  //the three coordinate grids
     FieldMetricsPtr metricsPtr; //some field metrics
+    
+    float scale; //scale factor of the field
 
     //use 1D array which will require manual indexing
     FieldValue *fieldValues;
 } MagneticField;
 
 // external function prototypes
-extern MagneticFieldPtr readSolenoid(char *);
-extern MagneticFieldPtr readTorus(char *);
-extern float fieldMagnitude(FieldValue *);
-extern void printFieldSummary(MagneticFieldPtr, FILE *);
-extern void printFieldValue(FieldValue *, FILE *);
-extern MagneticFieldPtr createFieldMap(void);
-extern void freeFieldMap(MagneticFieldPtr);
-extern const char *fieldUnits(MagneticFieldPtr);
-extern const char *lengthUnits(MagneticFieldPtr);
+extern MagneticFieldPtr readField(char*, char*);
+
+
 #endif /* magfield_h */

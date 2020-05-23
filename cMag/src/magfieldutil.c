@@ -6,9 +6,11 @@
 //
 
 #include "magfield.h"
+#include "magfieldutil.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 //some strings for prints
 const char *csLabels[] = { "cylindrical", "Cartesian" };
@@ -16,10 +18,7 @@ const char *lengthUnitLabels[] = { "cylindrical", "Cartesian" };
 const char *angleUnitLabels[] = { "degrees", "radians" };
 const char *fieldUnitLabels[] = { "kG", "G", "T" };
 
-//local prototypes
-static char* gridStr(GridPtr);
-
-/*
+/**
  * Get the magnitude of a field value
  * fvPtr: a pointer to a field value
  * return: the magnitude of a field value
@@ -31,7 +30,7 @@ float fieldMagnitude(FieldValue *fvPtr) {
     return sqrt(b1 * b1 + b2 * b2 + b3 * b3);
 }
 
-/*
+/**
  * Print a diagnostic summary of a field
  * magPtr: a pointer to a magnetics field
  * stream: a file stream, e.g. stdout
@@ -64,7 +63,7 @@ void printFieldSummary(MagneticFieldPtr magPtr, FILE *stream) {
             magPtr->metricsPtr->maxFieldMagnitude, fieldUnits(magPtr));
 }
 
-/*
+/**
  * Get the field units of the magnetic field
  * magPtr: a pointer to the field
  * return: a string representing the field units, e.g. "kG"
@@ -74,7 +73,7 @@ const char *fieldUnits(MagneticFieldPtr magPtr) {
     return fieldUnitLabels[funits];
 }
 
-/*
+/**
  * Get the length units of the magnetic field
  * magPtr: a pointer to the field
  * return: a string representing the length units, e.g. "cm"
@@ -84,8 +83,8 @@ const char *lengthUnits(MagneticFieldPtr magPtr) {
     return lengthUnitLabels[lunits];
 }
 
-/*
- * print the components and magnitude of field value
+/**
+ * Print the components and magnitude of field value
  * fvPtr: a pointer to a FieldValue structure
  * stream: a file stream, e.g. stdout
  */
@@ -94,18 +93,19 @@ void printFieldValue(FieldValue *fvPtr, FILE *stream) {
             fvPtr->b2, fvPtr->b3, fieldMagnitude(fvPtr));
 }
 
-/*
- *  allocate a field map
+/**
+ *  Allocate a field map with no content
  *  return: a pointer to an empty field map structure
  */
 MagneticFieldPtr createFieldMap() {
     MagneticFieldPtr magPtr = (MagneticFieldPtr) malloc(sizeof(MagneticField));
     magPtr->metricsPtr = (FieldMetricsPtr) malloc(sizeof(FieldMetrics));
+    magPtr->scale = 1;
     return magPtr;
 }
 
 /**
- * free the memory associated with a field map
+ * Free the memory associated with a field map
  * mapPtr: a pointer to the field
  */
 void freeFieldMap(MagneticFieldPtr magPtr) {
@@ -120,14 +120,14 @@ void freeFieldMap(MagneticFieldPtr magPtr) {
 }
 
 /**
- * Get a summary string for a coordinate grid
- * grid: a pointer to a coordinate grid
- * return: a summary string
+ * Copy a string and create the pointer
+ * dest: will become the pointer to the new string copy
+ * src: the string being copied
  */
-static char* gridStr(GridPtr grid) {
-    char *str = (char*) malloc(128);
-
-    sprintf(str, "%3s min: %6.1f  max: %6.1f  Np: %4d  delta: %6.1f",
-            grid->name, grid->minVal, grid->maxVal, grid->num, grid->delta);
-    return str;
+void stringCopy(char **dest, const char *src) {
+    unsigned long len = strlen(src);
+    *dest = (char*) malloc(len + 1);
+    strcpy(*dest, src);
 }
+
+
