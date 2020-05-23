@@ -26,5 +26,6 @@ typedef struct grid {
 //external prototypes
 extern GridPtr createGrid(const char*, float, float, unsigned int);
 extern char *gridStr(GridPtr);
+char *gridUnitTest(void);
 
 #endif /* maggrid_h */

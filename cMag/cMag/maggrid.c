@@ -8,6 +8,7 @@
 
 #include "maggrid.h"
 #include "magfieldutil.h"
+#include "munittest.h"
 #include <stdlib.h>
 #include <math.h>
 
@@ -54,10 +55,19 @@ GridPtr createGrid(const char *name, float minVal, float maxVal,
  * grid: a pointer to a coordinate grid
  * return: a summary string
  */
-char* gridStr(GridPtr grid) {
+char *gridStr(GridPtr grid) {
     char *str = (char*) malloc(128);
 
     sprintf(str, "%3s min: %6.1f  max: %6.1f  Np: %4d  delta: %6.1f",
             grid->name, grid->minVal, grid->maxVal, grid->num, grid->delta);
     return str;
+}
+
+/*
+ * A unit test for the grids
+ */
+char *gridUnitTest() {
+    int bar = 4;
+    mu_assert("error, bar != 5", bar == 5);
+    return NULL;
 }

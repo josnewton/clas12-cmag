@@ -7,6 +7,8 @@
 
 #include "magfield.h"
 #include "magfieldutil.h"
+#include "munittest.h"
+#include "maggrid.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +33,9 @@ static void computeFieldMetrics(MagneticFieldPtr);
 //since the fields were produced by Java which uses
 //new format (BigEndian) we probably will have to swap.
 static bool swapBytes = false;
+
+//this is used by the minimal unit testing
+int mtests_run = 0;
 
 /**
  * Read a binary field map at the given location
