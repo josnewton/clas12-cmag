@@ -100,6 +100,7 @@ void printFieldValue(FieldValue *fvPtr, FILE *stream) {
 MagneticFieldPtr createFieldMap() {
     MagneticFieldPtr magPtr = (MagneticFieldPtr) malloc(sizeof(MagneticField));
     magPtr->metricsPtr = (FieldMetricsPtr) malloc(sizeof(FieldMetrics));
+    magPtr->scale = 1;
     return magPtr;
 }
 

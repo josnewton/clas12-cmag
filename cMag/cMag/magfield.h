@@ -83,6 +83,8 @@ typedef struct magneticfield {
     int numValues;  //total number of field values
     GridPtr gridPtr[3];  //the three coordinate grids
     FieldMetricsPtr metricsPtr; //some field metrics
+    
+    float scale; //scale factor of the field
 
     //use 1D array which will require manual indexing
     FieldValue *fieldValues;

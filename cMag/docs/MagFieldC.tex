@@ -1,0 +1,48 @@
+\documentclass{article}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{framed}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{listings}
+\usepackage{amsmath, esint}
+\setlength{\parindent}{0cm}
+\thispagestyle{empty}
+\pagestyle{empty}
+\newcommand{\Lagr}{\mathcal{L}}
+\newcommand{\AnsLine}{\hspace{0.2 cm} \underline{\hspace{2 cm}}}
+\newcommand{\Hgap}{\hspace{0.5cm}}
+\newcommand{\Ihat}{\hat{i}}
+\newcommand{\Jhat}{\hat{j}}
+\newcommand{\Khat}{\hat{k}}
+\newcommand{\Xhat}{\hat{x}}
+\newcommand{\Yhat}{\hat{y}}
+\newcommand{\Zhat}{\hat{z}}
+\newcommand{\Nhat}{\hat{n}}
+\newcommand{\DEL}{\vec{\nabla}}
+\setlength\parindent{0pt}
+\def\changemargin#1#2{\list{}{\rightmargin#2\leftmargin#1}\item[]}
+\let\endchangemargin=\endlist 
+
+\title{A \emph{C} Version of the CLAS12 magnetic field package}
+
+\author{D. Heddle  \\
+	\emph{Christopher Newport University}  \\
+         \emph{david.heddle@cnu.edu}\\
+	}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\begin{abstract}
+   The standard CLAS12 magnetic field that reads and interpolates the binary field maps for the solenoid and torus was written in JAVA. The package described here reproduces the same functionality in \emph{C}. That's  \emph{C}, not \emph{C++}, 
+\footnote{The reason should be obvious. \emph{C} is the most beautiful programming language ever created while, remakably, \emph{C++} is the most hideous. This is not a matter of opinion.}
+ but of course it can used in a \emph{C++} program. The most important feature is that it reads the same fieldmap files as the JAVA version.
+
+
+\end{abstract}
+\newpage
+
+
+\end{document}
