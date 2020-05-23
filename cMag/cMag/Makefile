@@ -12,6 +12,7 @@
 
         RM =  rm -f
         MV =  mv -f
+        MKDIR = mkdir -p
 
 #---------------------------------------------------------------------
 # Define (relative to the source dir) the object dir
@@ -34,6 +35,12 @@
              magfield.c\
              magfieldutil.c\
              main.c
+
+
+#--------------------------------------------------------------------
+# required libraries
+#--------------------------------------------------------------------
+     LIBS = -lm
 
 #---------------------------------------------------------------------
 #the lib source files are those that have code that changes whe we
@@ -72,6 +79,7 @@
 
      all:
 	$(RM) *.o
+	$(MKDIR) $(OBJDIR)
 	touch $(OBJDIR)/tmpfle
 	cp -p $(OBJDIR)/* .
 	$(RM) $(OBJDIR)/tmpfle
@@ -85,7 +93,7 @@
      $(PROGRAM): $(OBJS)
 
 
-	$(CC) -o $@ $(OBJS) 
+	$(CC) -o $@ $(OBJS) $(LIBS) 
 	cp -p  $(PROGRAM) $(OBJDIR)
 
 #---------------------------------------------------------------------
