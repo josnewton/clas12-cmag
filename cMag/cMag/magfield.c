@@ -6,13 +6,13 @@
 //
 
 #include "magfield.h"
+#include "magfieldutil.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
 #include <math.h>
-#include <string.h>
 
 //coordinate names
 static const char *q1Names[] = { "phi", "x" };
@@ -24,9 +24,7 @@ static FieldMapHeaderPtr readMapHeader(FILE*);
 static long getFileSize(FILE*);
 static void swap32(char*, int);
 static char* getCreationDate(FieldMapHeaderPtr);
-static MagneticFieldPtr readField(char*, char*);
-static GridPtr createGrid(const char*, float, float, unsigned int);
-static void stringCopy(char**, const char*);
+
 static void computeFieldMetrics(MagneticFieldPtr);
 
 //do we have to swap bytes?
@@ -34,34 +32,15 @@ static void computeFieldMetrics(MagneticFieldPtr);
 //new format (BigEndian) we probably will have to swap.
 static bool swapBytes = false;
 
-/*
- * Read the CLAS12 solenoidal field.
- * path: the full path to a CLAS12 solenoid map.
- * return: NULL on failure, the field pointer on success.
- */
-MagneticFieldPtr readSolenoid(char *path) {
-    debugPrint("\nAttempting to read  CLAS12 solenoid from [%s]\n", path);
-    return readField(path, "SOLENOID");
-}
-
-/*
- * Read the CLAS12 torus field.
- * path: the full path to a CLAS12 torus file.
- * return: NULL on failure, the field pointer on success.
- */
-MagneticFieldPtr readTorus(char *path) {
-    debugPrint("\nAttempting to read CLAS12 torus from [%s]\n", path);
-    return readField(path, "TORUS");
-}
-
-/*
- * read a binary field map at the given location
- * path: the full path to a field map file.
+/**
+ * Read a binary field map at the given location
+ * path: the full path to a field map file
  * name: a descriptive name of the map, e.g., "TORUS"
  * return: NULL on failure, the field pointer on success.
  */
-static MagneticFieldPtr readField(char *path, char *name) {
+MagneticFieldPtr readField(char *path, char *name) {
 
+    debugPrint("\nAttempting to read field map from [%s]\n", path);
     FILE *file = fopen(path, "r");
     if (file == NULL) {
         return NULL;
@@ -267,49 +246,6 @@ static void swap32(char *ptr, int num32) {
     }
 }
 
-//copy a string
-static void stringCopy(char **dest, const char *src) {
-    unsigned long len = strlen(src);
-    *dest = (char*) malloc(len + 1);
-    strcpy(*dest, src);
-}
 
-/*
- * Create a uniform coordinate grid
- * name: the name of the coordinate, e.g. "phi"
- * minVal the min value of the grid
- * maxVal the max valueof the grid
- * num: the number of points on the grid, including the ends
- * return: a pointer to the coordinate grid
- */
-//create a coordinate grid
-static GridPtr createGrid(const char *name, float minVal, float maxVal,
-        unsigned int num) {
-    GridPtr gridPtr;
-
-    gridPtr = (GridPtr) malloc(sizeof(Grid));
-
-    stringCopy(&(gridPtr->name), name);
-    gridPtr->minVal = minVal;
-    gridPtr->maxVal = maxVal;
-    gridPtr->num = num;
-
-    if (num < 2) {
-        gridPtr->delta = INFINITY;
-        gridPtr->values = NULL;
-    } else {
-        gridPtr->delta = (maxVal - minVal) / (num - 1);
-        gridPtr->values = (float*) malloc(num * sizeof(float));
-
-        gridPtr->values[0] = minVal;
-        gridPtr->values[num - 1] = maxVal;
-
-        for (int i = 1; i < (num - 1); i++) {
-            gridPtr->values[i] = i * gridPtr->delta;
-        }
-    }
-
-    return gridPtr;
-}
 
 

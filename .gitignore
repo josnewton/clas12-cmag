@@ -43,4 +43,7 @@ cMag/cMag/tmpfle/
 *.plist
 *.pbxproj
 *.xcuserstate
+cMag.xcodeproj
+tmpfle
+
 
