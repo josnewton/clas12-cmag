@@ -13,7 +13,9 @@
 
 typedef struct grid *GridPtr;
 
-//holds the uniformly spaced grid values
+/**
+ * Holds the uniformly spaced grid values for a coordinate.
+ */
 typedef struct grid {
         char *name;    //the name of the coordinate, e.g., "phi".
         float minVal;  //the min value of the coordinate
@@ -26,6 +28,7 @@ typedef struct grid {
 //external prototypes
 extern GridPtr createGrid(const char*, float, float, unsigned int);
 extern char *gridStr(GridPtr);
+float valueAtIndex(GridPtr, int);
 char *gridUnitTest(void);
 
 #endif /* maggrid_h */

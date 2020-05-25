@@ -26,12 +26,16 @@
 typedef struct fieldmapheader *FieldMapHeaderPtr;
 typedef struct magneticfield *MagneticFieldPtr;
 typedef struct fieldmetrics *FieldMetricsPtr;
+typedef struct fieldvalue *FieldValuePtr;
 
 //some strings for prints
 extern const char *csLabels[];
 extern const char *lengthUnitLabels[];
 extern const char *angleUnitLabels[];
 extern const char *fieldUnitLabels[];
+
+//used for unit testing
+extern MagneticFieldPtr testFieldPtr;
 
 //the header of the binary files
 typedef struct fieldmapheader {
@@ -67,9 +71,8 @@ typedef struct fieldvalue {
 //holds some metrics of the field
 typedef struct fieldmetrics {
   unsigned int maxFieldIndex; //the index where we find the max field value
-  float maxFieldMagnitude; //the value of the max field index
-  float maxFieldLocation[3]; //the location of the max field vector
-  float avgFieldMagnitude; //the average field magnitude
+  double maxFieldMagnitude; //the value of the max field index
+  double avgFieldMagnitude; //the average field magnitude
 } FieldMetrics;
 
 //holds the entire field map
@@ -79,19 +82,38 @@ typedef struct magneticfield {
     char *path; //the path to the file
     char *name; //a descriptive name
     bool symmetric; //is this a symmetric grid (solenoid always is)
+    enum fieldType {TORUS, SOLENOID} type; //type of field
     char *creationDate;  //date the map was created
-    int numValues;  //total number of field values
-    GridPtr gridPtr[3];  //the three coordinate grids
+    unsigned int numValues;  //total number of field values
+
+    //a grid pointer for each coordinate
+    GridPtr q1GridPtr;
+    GridPtr q2GridPtr;
+    GridPtr q3GridPtr;
+
     FieldMetricsPtr metricsPtr; //some field metrics
     
     float scale; //scale factor of the field
+
+    float shiftX; //misplacement shift in the x direction (cm)
+    float shiftY; //misplacement shift in the y direction (cm)
+    float shiftZ; //misplacement shift in the z direction (cm)
+
+    //some auxiliary data to cache
+    unsigned int N23; // for faster indexing
 
     //use 1D array which will require manual indexing
     FieldValue *fieldValues;
 } MagneticField;
 
 // external function prototypes
-extern MagneticFieldPtr readField(char*, char*);
-
+extern MagneticFieldPtr initializeTorus(const char *);
+extern MagneticFieldPtr initializeSolenoid(const char *);
+extern int getCompositeIndex(MagneticFieldPtr, int, int, int);
+extern void getCoordinateIndices(MagneticFieldPtr, int, int *, int *, int *);
+extern char *compositeIndexUnitTest();
+extern FieldValuePtr getFieldAtIndex(MagneticFieldPtr, int );
+extern void getFieldValue(FieldValuePtr, float, float, float, MagneticFieldPtr);
+extern void getCompositeFieldValue(FieldValuePtr, float, float, float, MagneticFieldPtr, ...);
 
 #endif /* magfield_h */

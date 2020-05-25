@@ -7,11 +7,15 @@
 //
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include "magfield.h"
 #include "munittest.h"
 #include "magfieldutil.h"
-#include "munittest.h"
+
+//the two fields we'll try to initialize
+static MagneticFieldPtr torus;
+static MagneticFieldPtr solenoid;
 
 /**
  * Run the unit tests
@@ -19,15 +23,26 @@
  */
 static char *allTests() {
     mu_run_test(gridUnitTest);
-    
+    mu_run_test(randomUnitTest);
+
+    fprintf(stdout, "\nTORUS");
+    testFieldPtr = torus;
+    mu_run_test(compositeIndexUnitTest);
+
+    testFieldPtr = solenoid;
+    fprintf(stdout, "\nSOLENOID");
+    mu_run_test(compositeIndexUnitTest);
+
     return NULL;
 }
 
 /**
- * The main program. The arguments are ignored.
- * argc: number of arguments
- * argv: command line arguments
- * return: 0 on successful completion, 1 on error.
+ * The main method of the test application.
+ * @param argc the number of arguments
+ * @param argv the command line argument. Only one is processed, the path
+ * to the directory containing the magnetic fields. If that argument is missing,
+ * it will look in $(HOME)/magfield.
+ * @return 0 on successful completion, 1 if any error occurred.
  */
 int main(int argc, const char * argv[]) {
     
@@ -35,41 +50,56 @@ int main(int argc, const char * argv[]) {
     char *solenoidPath = (char*) malloc(255);
     char *torusPath = (char*) malloc(255);
 
-    //for testing will look for mag fields in $HOME/magfield
-    //here we build the paths
-    const char *homedir = getenv("HOME");
-    sprintf(solenoidPath, "%s/magfield/Symm_solenoid_r601_phi1_z1201_13June2018.dat", homedir);
-    sprintf(torusPath, "%s/magfield/Symm_torus_r2501_phi16_z251_24Apr2018.dat",
-            homedir);
 
-    fprintf(stdout, "Testing the magfield reader\n");
+    //for testing will look for mag fields in either the first
+    // command line argument, if provided, or in $HOME/magfield.
+    //Here we build the paths
+    const char *dataDir;
+
+    if (argc > 1) {
+        dataDir = argv[1];
+        fprintf(stdout, "Using command line data directory: [%s]", dataDir);
+    }
+    else {
+        dataDir = strcat(getenv("HOME"), "/magfield");
+    }
+
+    sprintf(solenoidPath, "%s/Symm_solenoid_r601_phi1_z1201_13June2018.dat", dataDir);
+    sprintf(torusPath, "%s/Symm_torus_r2501_phi16_z251_24Apr2018.dat", dataDir);
+
+    fprintf(stdout, "\nTesting the cMag library\n");
 
     //try to read the torus
-    MagneticFieldPtr torus = readField(torusPath, "TORUS");
+    torus = initializeTorus(torusPath);
     if (torus == NULL) {
-        fprintf(stderr, "Failed to read torus map from [%s]\n", torusPath);
+        fprintf(stderr, "\ncMag ERROR failed to read torus map from [%s]\n", torusPath);
         return 1;
     }
 
     //try to read the solenoid
-    MagneticFieldPtr solenoid = readField(solenoidPath, "SOLENOID");
+    solenoid = initializeSolenoid(solenoidPath);
     if (solenoid == NULL) {
-        fprintf(stderr, "Failed to read solenoid map from [%s]\n",
+        fprintf(stderr, "\ncMag ERROR failed to read solenoid map from [%s]\n",
                 solenoidPath);
         return 1;
     }
     
     //run the unit tests
+    testFieldPtr = torus; //used for unit test
     char *testResult = allTests();
 
     freeFieldMap(torus);
     freeFieldMap(solenoid);
-    
+
+  //  FieldValuePtr fieldValuePtr = (FieldValuePtr) malloc(sizeof (FieldValue));
+  //  getCompositeFieldValue(fieldValuePtr, 200, 200, 300, torus, solenoid);
+  //  free (fieldValuePtr);
+
     if (testResult != NULL) {
         fprintf(stdout, "Unit test failed: [%s]\n", testResult);
     }
     else {
-        fprintf(stdout, "Program ran successfully.\n");
+        fprintf(stdout, "\nProgram ran successfully.\n");
     }
     return (testResult == NULL) ? 0 : 1;
 }

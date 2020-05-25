@@ -15,10 +15,12 @@
 extern void stringCopy(char **, const char *);
 extern const char *fieldUnits(MagneticFieldPtr);
 extern const char *lengthUnits(MagneticFieldPtr);
-extern float fieldMagnitude(FieldValue *);
+extern double fieldMagnitude(FieldValue *);
 extern void printFieldSummary(MagneticFieldPtr, FILE *);
 extern void printFieldValue(FieldValue *, FILE *);
 extern MagneticFieldPtr createFieldMap(void);
 extern void freeFieldMap(MagneticFieldPtr);
+extern int randomInt(unsigned int, int, int);
+extern char *randomUnitTest();
 
 #endif /* magfieldutil_h */

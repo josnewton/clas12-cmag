@@ -6,7 +6,7 @@
 // A MinUnit test case is just a function that returns NULL if the tests pass.
 // If the test fails, the function should return a string describing the failing test.
 // mu_assert is simply a macro that returns
-// string if the expression passed to it is false.
+// message if the expression passed to it is false.
 // The mu_runtest macro calls another test case and returns if that test case fails.
 
 #ifndef munittest_h
