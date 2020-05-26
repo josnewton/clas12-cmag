@@ -11,6 +11,10 @@
 
 #include "magfield.h"
 
+//used for comparing real numbers
+extern const double TINY;
+
+
 //external prototypes
 extern void stringCopy(char **, const char *);
 extern const char *fieldUnits(MagneticFieldPtr);
@@ -20,7 +24,16 @@ extern void printFieldSummary(MagneticFieldPtr, FILE *);
 extern void printFieldValue(FieldValue *, FILE *);
 extern MagneticFieldPtr createFieldMap(void);
 extern void freeFieldMap(MagneticFieldPtr);
-extern int randomInt(unsigned int, int, int);
+extern int randomInt(int, int);
+extern double randomDouble(double, double);
 extern char *randomUnitTest();
+bool sameNumber(double, double);
+void normalizeAngle(double *);
+
+inline double toDegrees(double);
+inline double toRadians(double);
+extern void cartesianToCylindrical(const double, const double, double *, double *);
+extern void cylindricalToCartesian(double *, double *, const double, const double);
+extern char *conversionUnitTest();
 
 #endif /* magfieldutil_h */

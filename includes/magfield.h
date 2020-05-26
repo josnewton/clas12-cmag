@@ -73,6 +73,7 @@ typedef struct fieldmetrics {
   unsigned int maxFieldIndex; //the index where we find the max field value
   double maxFieldMagnitude; //the value of the max field index
   double avgFieldMagnitude; //the average field magnitude
+
 } FieldMetrics;
 
 //holds the entire field map
@@ -112,8 +113,11 @@ extern MagneticFieldPtr initializeSolenoid(const char *);
 extern int getCompositeIndex(MagneticFieldPtr, int, int, int);
 extern void getCoordinateIndices(MagneticFieldPtr, int, int *, int *, int *);
 extern char *compositeIndexUnitTest();
+extern char *containsUnitTest();
 extern FieldValuePtr getFieldAtIndex(MagneticFieldPtr, int );
 extern void getFieldValue(FieldValuePtr, float, float, float, MagneticFieldPtr);
 extern void getCompositeFieldValue(FieldValuePtr, float, float, float, MagneticFieldPtr, ...);
+extern void setAlgorithm(enum Algorithm);
+bool contains(MagneticFieldPtr, double, double, double);
 
 #endif /* magfield_h */

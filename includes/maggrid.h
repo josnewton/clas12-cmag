@@ -13,6 +13,8 @@
 
 typedef struct grid *GridPtr;
 
+extern enum Algorithm {INERPOLATION, NEAREST_NEIGHBOR} fieldAlgorithm;
+
 /**
  * Holds the uniformly spaced grid values for a coordinate.
  */

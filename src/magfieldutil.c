@@ -11,15 +11,106 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <time.h>
+
+//used for comparing real numbers
+double const TINY = 1.0e-10;
+
+//used for degrees <--> radians;
+const double PIOVER180 = M_PI/180.;
 
 //some strings for prints
 const char *csLabels[] = { "cylindrical", "Cartesian" };
-const char *lengthUnitLabels[] = { "cylindrical", "Cartesian" };
+const char *lengthUnitLabels[] = { "cm", "m" };
 const char *angleUnitLabels[] = { "degrees", "radians" };
 const char *fieldUnitLabels[] = { "kG", "G", "T" };
 
 //local prototypes
 static void freeGrid(GridPtr gridPtr);
+
+/**
+ * Convert an angle from radians to degrees.
+ * @param angRad  the angle in radians.
+ * @return the angle in degrees.
+ */
+double toDegrees(double angRad) {
+    return  angRad/PIOVER180;
+}
+
+/**
+ * Convert an angle from degrees to radians.
+ * @param angDeg the angle in degrees.
+ * @return the angle in radians.
+ */
+double toRadians(double angDeg) {
+    return angDeg * PIOVER180;
+}
+
+/**
+ * The usual test to see if two floating point numbers are close
+ * enough to be considered equal. Test accuracy depends on the
+ * global const TINY, set to 1.0e-10.
+ * @param v1 one value.
+ * @param v2 another value.
+ * @return true if the values are close enough to be considered equal.
+ */
+bool sameNumber(double v1, double v2) {
+    if (v1 == v2) {
+        return true;
+    }
+
+    double del = fabs(v2 - v1);
+    v1 = fabs(v1);
+    v2 = fabs(v2);
+    double vmax = (v2 > v1) ? v2 : v1;
+    return del/vmax < TINY;
+}
+
+/**
+ * Converts 2D Cartesian coordinates to polar. This is used because the two coordinate systems we use
+ * are Cartesian and cylindrical, whose 3D transformations are equivalent to 2D Cartesian to polar. Note
+ * the azimuthal angle output is in degrees, not radians.
+ * @param x the x component.
+ * @param y the y component.
+ * @param phi will hold the angle, in degrees, in the range [0, 360).
+ * @param rho the longitudinal component.
+ */
+void cartesianToCylindrical(const double x, const double y, double *phi, double *rho) {
+    *phi = atan2(y, x);
+    *phi = toDegrees(*phi);
+    normalizeAngle(phi);
+    *rho = sqrt(x*x + y*y);
+}
+
+/**
+ * Converts polar coordinates to 2D Cartesian. This is used because the two coordinate systems we use
+ * are Cartesian and cylindrical, whose 3D transformations are equivalent to 2D polar to Cartesian. Note
+ * the azimuthal angle input is in degrees, not radians.
+ * @param x will hold the x component.
+ * @param y will hold the y component.
+ * @param phi the azimuthal angle, in degrees.
+ * @param rho the longitudinal component.
+ */
+void cylindricalToCartesian(double *x, double *y, const double phi, const double rho) {
+
+    double dphi = toRadians(phi);
+    *x = rho*cos(dphi);
+    *y = rho*sin(dphi);
+}
+
+/**
+ * This will normalize an angle in degrees. We use for normaliztion that
+ * the angle should be in the range [0, 360).
+ * @param angDeg the angle in degrees. It will be normalized.
+ */
+void normalizeAngle(double *angDeg) {
+    while(*angDeg < 0) {
+        *angDeg += 360;
+    }
+    while(*angDeg >= 360) {
+        *angDeg -= 360;
+    }
+}
 
 /**
  * Get the magnitude of a field value.
@@ -166,18 +257,11 @@ void stringCopy(char **dest, const char *src) {
 
 /**
  * Obtain a random int in an inclusive range[minVal, maxVal]. Used for testing.
- * @param seed a seed for the generator, or 0 for no seed.
  * @param minVal the minimum value
  * @param maxVal the maximum Value;
  * @return
  */
-int randomInt(unsigned int seed, int minVal, int maxVal) {
-
-    //seed?
-    if (seed > 0) {
-        srand(seed);
-    }
-
+int randomInt(int minVal, int maxVal) {
     int del = maxVal - minVal;
     int randVal = rand();
 
@@ -185,10 +269,53 @@ int randomInt(unsigned int seed, int minVal, int maxVal) {
 }
 
 /**
+ * Obtain a random double in the range[minVal, maxVal]. Used for testing.
+ * @param minVal the minimum value
+ * @param maxVal the maximum Value;
+ * @return
+ */
+double randomDouble(double minVal, double maxVal) {
+    double range = maxVal - minVal;
+    return minVal + range*drand48();
+}
+
+/**
+ * A unit test for the conversions
+ * @return an error message if the test fails, or NULL if it passes.
+ */
+char *conversionUnitTest() {
+    srand48(time(0)); //seed random
+
+    int num = 10000;
+
+    double x, y, phi, rho, tx, ty;
+
+    for (int i = 0; i < 10000; i++) {
+        x = randomDouble(-100, 600);
+        y = randomDouble(-100, 600);
+
+        cartesianToCylindrical(x, y, &phi, &rho);
+        cylindricalToCartesian(&tx, &ty, phi, rho);
+
+        bool result = sameNumber(x, tx) && sameNumber(y, ty);
+
+        if (!result) {
+            fprintf(stdout, "Conversions did not invert x: [%-6.3f to %-6.3f] y: [%-6.3f to %-6.3f] \n", x, tx, y, ty);
+        }
+
+        mu_assert("Conversions did not invert", result);
+    }
+
+    fprintf(stdout, "\nPASSED conversionUnitTest\n");
+    return NULL;
+}
+
+/**
  * A unit test for the random number generator
  * @return an error message if the test fails, or NULL if it passes.
  */
 char *randomUnitTest() {
+    srand48(time(0)); //seed random
 
     int minVal = 0;
     int maxVal = 301;
@@ -197,7 +324,7 @@ char *randomUnitTest() {
     bool result;
 
     for (int i = 0; i < count; i++) {
-        int val = randomInt(0, minVal, maxVal);
+        int val = randomInt(minVal, maxVal);
 
         //result should be true if we pass
         bool result = (val >= minVal) && (val <= maxVal);
@@ -210,6 +337,5 @@ char *randomUnitTest() {
     }
 
     fprintf(stdout, "\nPASSED randomUnitTest\n");
-
     return NULL;
 }

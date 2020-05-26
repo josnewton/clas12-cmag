@@ -68,7 +68,7 @@ An exception to the rule stated above, the field maps are not available on eithe
 
  \url{https://clasweb.jlab.org/clas12offline/magfield/}.
 
-In the Appendix of this document you will find a description of the format of the field map files.
+In Appendix B of this document you will find a description of the format of the field map files.
 
 
 \section {Building}
@@ -84,11 +84,11 @@ If it worked, you should now have top-level \texttt{bin} and \texttt{lib} direct
 \subsection {Unit Testing}
 Assuming the build worked (and why shouldn't it?) the first thing you should do is run \texttt{bin/cMagTest} and see if it produces happy output (it does unit testing.) 
 
-But wait just a moment. Running  \texttt{cMagTest} is the \textit{first} thing you should do. The \textit{zeroth} thing you should do, obviously before the first thing, is to make sure you have magnetic fields.  As mentioned earlier, they can be downloaded from here:\\
+But wait just a moment. Running  \texttt{cMagTest} is the \textit{first} thing you should do, which every programmer knows is the second thing you should do. The \textit{zeroth} thing you should do, obviously before the first thing, is to make sure you have bonafide CLAS12 magnetic fields.  As mentioned earlier, they can be downloaded from here:\\
 
  \url{https://clasweb.jlab.org/clas12offline/magfield/}.\\
 \vspace{1mm}\\
-Of the magnetic fields you will find there, the two that \texttt{bin/cMagTest}  needs to run are:\\
+Of the magnetic fields you will find there, the two that \texttt{bin/cMagTest}  requires to run its tests are:\\
 
 \begin{verbatim}
     Symm_solenoid_r601_phi1_z1201_13June2018.dat
@@ -139,7 +139,10 @@ where \texttt{torusPath} and \texttt{solenoidPath} are strings , each containing
 
 How do you know it it worked? Well, there  should be some error prints if an initialization failed. But the programmatic test is whether the returned points are \texttt{NULL}. 
 
-If it worked, it will print out a summary of each field that was initialized. You should look for those summaries. For example, here is a summary of the solenoid:
+Don't even ask what happens if you give \texttt{initializeTorus} a solenoid map, and \texttt{initializeSolenoid}  a torus map. \footnote{Okay, since you didn't ask, I'll tell you. It's really bad. If you mismatch the calls, the secure CLAS password that we have used since the previous millennium for everything critical will be changed to \textbf{\texttt{äçäĐ™ǧẌÆ}} and nothing will work again. Ever. Okay really, nothing will happen except clarity will be sacrificed. The functions \texttt{initializeTorus} and \texttt{initializeSolenoid} are just wrappers to a single function that reads a field map. So all you will have achieved is obfuscation, which may have been your intent.\\}
+
+Another indication that it worked is that \texttt{cMag} will print out a summary of each field that was initialized. You should look for those summaries. For example, here is a summary of the solenoid:
+\footnote{The delta of $\infty$ for the $\phi$ grid of the solenoid field is a feature, not a bug.\\}
 
 \begin{verbatim} 
 ========================================
@@ -167,15 +170,28 @@ avg field magnitude: 3.082540   kG
 \subsubsection{Environment Variables}
 So, what's this about passing \texttt{NULL} for a path to the initialization functions? In that case the initialization will reluctantly turn to environment variables: \texttt{initializeTorus}  will first try a path obtained from the environment variable \texttt{COAT\_MAGFIELD\_TORUSMAP}. If that fails, it will try \texttt{TORUSMAP}. If that fails, it will give up the ghost, as far as initializing the torus is concerned. Similarly \texttt{initializeSolenoid} will first try the environment variable \texttt{COAT\_MAGFIELD\_SOLENOIDMAP}. If that fails, it will try \texttt{SOLENOIDMAP}. 
 
-Something worth noting. Each magnetic field has a \texttt{scale}, which defaults to\ 1. And each magnetic field has ``misplacement" shifts \texttt{shiftX}, \texttt{shiftY}, and \texttt{shiftZ}, each of which defaults to 0 (units are cm). Thus you may want to do something immediate such as:
+\subsection{Settings}
+How much control does the user have over what's happening under the hood? Not much. One global (i.e., it applies to all fields) option that is available is the \textit{algorithm} (for obtaining field values) setting. The user can set it to \texttt{INTERPOLATION} or \texttt{NEAREST\_NEIGHBOR}. The default is \texttt{INTERPOLATION}. 
+
+We don't think there is ever a need to switch it to \texttt{NEAREST\_NEIGHBOR}, but should you want to, just call:
+
+\texttt{setAlgorithm(NEAREST\_NEIGHBOR)}. 
+
+After you get bored with that, set it back via: 
+
+\texttt{setAlgorithm(INTERPOLATION)}.
+
+As for field-by-field  settting, each magnetic field has a \texttt{scale}, which defaults to\ 1. And each magnetic field has ``misplacement" shifts \texttt{shiftX}, \texttt{shiftY}, and \texttt{shiftZ}, each of which defaults to 0 (units are cm). Thus you may want to do something immediate such as:
  \begin{verbatim} 
 torusField->scale = -1;
 \end{verbatim}
-Since that is often the case. \footnote{We agonized over whether to make the default torus scaling -1, and finally chose the option we believe is most consistent with the \textit{C} zeitgeist\\}
+Since that is often the case. \footnote{We agonized over whether to make the default torus scaling -1, and finally chose the option we believe is most consistent with the \textit{C} zeitgeist.\\}
 
 
-Don't even ask what happens if you give \texttt{initializeTorus} a solenoid map, and \texttt{initializeSolenoid}  a torus map. \footnote{Okay, since you didn't ask, I'll tell you. It's really bad. If you mismatch the calls, the secure CLAS password that we have used since the previous millennium for everything critical will be changed to \textbf{\texttt{äçäĐ™ǧẌÆ}} and nothing will work again. Ever. Okay really, nothing will happen except clarity will be sacrificed. The functions \texttt{initializeTorus} and \texttt{initializeSolenoid} are just wrappers to a single function that reads a field map. So all you will have achieved is obfuscation, which may have been your intent.\\}
+\subsection{Obtaining Field Values}
+Here we are: the meat and potatoes section. Everything has built with nary a glitch, all the unit tests have passed,  and the field map files are downloaded, and the library \texttt{libCMag.a} is linked in. \footnote{Again, we will not comment on the link process, which for complex codes (not \texttt{cMag} which is embarassingly simple, but for whatever is attempting to link \texttt{libCMag.a}, --which is likely to be complex beyond our ability to comprehend. ) generally leads to much weeping and gnashing of teeth. But just one note: \texttt{libCMag.a} does depend on the ubiquitous \textit{C} math library, \texttt{libm.a}. No doubt you code already links that with a dash of \texttt{-lm}, but for full disclosure we are putting the dependancy down on paper.\\}
 
+\subsection {Miscellany}
 In case you'd like to know how the formatted creation date is obtained from the high and low words in the header, it's like this:
 \begin{verbatim}
 static char *getCreationDate(FieldMapHeaderPtr headerPtr) {
@@ -188,10 +204,14 @@ static char *getCreationDate(FieldMapHeaderPtr headerPtr) {
     long dlow = low & 0x00000000ffffffffL;
     time_t utime = (((long) high << 32) | (dlow & 0xffffffffL)) / 1000;
 return ctime(&utime);
+
 \end{verbatim}
 
 \newpage
-\section{APPENDIX: Field Map File Format}
+\appendix
+\section{Programmer's API}
+\newpage
+\section{Field Map File Format}
 Provided mostly for completeness, and demonstrating the raw power of \LaTeX, the fieldmap file format document has been inserted starting on the next page. If that doesn't work, the document is also included in the  \texttt{docs} directory of the \textit{cMag} distribution. \footnote{ As, self-rerentially, this document is, referring to the location where it is stored at the location where it is stored.}
 \includepdf[pages=-,pagecommand={},width=\textwidth]{FieldmapFileFormat.pdf}
 

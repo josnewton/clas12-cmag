@@ -22,6 +22,9 @@ static const char *q3Names[] = { "z", "z" };
 //used for unit testing only
 MagneticFieldPtr testFieldPtr;
 
+//the field algorithm (global; applies to all fields)
+enum Algorithm _algorithm = INERPOLATION;
+
 //local prototypes
 static FieldMapHeaderPtr readMapHeader(FILE *);
 static MagneticFieldPtr readField(const char *);
@@ -38,6 +41,17 @@ static bool swapBytes = false;
 //this is used by the minimal unit testing
 int mtests_run = 0;
 
+/**
+ * Set the global option for the algorithm used to extract field values.
+ * @param algorithm it can either be
+ */
+void setAlgorithm(enum Algorithm algorithm) {
+    if (algorithm != _algorithm) {
+        _algorithm = algorithm;
+        fprintf(stdout, "The algorithm for finding field values has been changed to: %s",
+                (_algorithm == INERPOLATION) ? "INTERPOLATION" : "NEAREST_NEIGHBOR");
+    }
+}
 /**
  * Initialize the torus field.
  * @param torusPath a path to a torus field map. If you want to use environment variables, pass NULL
@@ -82,6 +96,31 @@ MagneticFieldPtr initializeSolenoid(const char *solenoidPath) {
         return NULL;
     }
     return readField(solenoidPath);
+}
+
+/**
+ * This checks whether the given point is within the boundary of the field. This is so the methods
+ * that retrieve a field value can short-circuit to zero.
+ * NOTE: this assumes, as is the case at the time of writing, that the CLAS12 fields have grids
+ * in cylindrical coordinates and length units of cm.
+ * @param fieldPtr
+ * @param x the x coordinate in cm.
+ * @param y the y coordinate in cm.
+ * @param z the z coordinate in cm.
+ * @return true if the point is within the boundary of the field.
+ */
+bool contains(MagneticFieldPtr fieldPtr, double x, double y, double z) {
+
+    if ((z < fieldPtr->q3GridPtr->minVal) || (z > fieldPtr->q3GridPtr->maxVal)) {
+        return false;
+    }
+
+    double rho = hypot(x, y);
+    if ((rho < fieldPtr->q2GridPtr->minVal) || (rho > fieldPtr->q2GridPtr->maxVal)) {
+        return false;
+    }
+
+    return true;
 }
 
 /**
@@ -173,7 +212,8 @@ static MagneticFieldPtr readField(const char *path) {
 }
 
 /**
- *
+ * Obtain the value of the field by tri-linear interpolation or nearest neighbor,
+ * depending on settings.
  * @param fieldValuePtr should be a valid pointer to a FieldValue. Upon
  * return it will hold the value of the field in kG, in Cartesian components
  * Bx, By, BZ, regardless of the field coordinate system of the map.
@@ -191,7 +231,8 @@ void getFieldValue(FieldValuePtr fieldValuePtr,
 }
 
 /**
- * Obtain the value of the field, using one or more field maps.
+ * Obtain the value of the field, using one or more field maps. The field
+ * is obtained by tri-linear interpolation or nearest neighbor, depending on settings.
  * @param fieldValuePtr should be a valid pointer to a FieldValue. Upon
  * return it will hold the value of the field, in kG, in Cartesian components
  * Bx, By, BZ, regardless of the field coordinate system of the maps,
@@ -415,6 +456,62 @@ static void swap32(char *ptr, int num32) {
 }
 
 /**
+ * A unit test for checking the boundary contains check.
+ * @return an error message if the test fails, or NULL if it passes.
+ */
+char *containsUnitTest() {
+
+    int count = 10000;
+    int q1Index, q2Index, q3Index;
+    bool result;
+
+    double x, y, z;
+
+    //first inside
+    for (int i = 0; i < count; i++) {
+
+        double phi = randomDouble(0, 360);
+        double rho = randomDouble(testFieldPtr->q2GridPtr->minVal, testFieldPtr->q2GridPtr->maxVal);
+        double z = randomDouble(testFieldPtr->q3GridPtr->minVal, testFieldPtr->q3GridPtr->maxVal);
+
+        cylindricalToCartesian(&x, &y, phi, rho);
+        result = contains(testFieldPtr, x, y, z);
+
+        mu_assert("The (inside) boundary contains test failed.", result);
+    }
+
+    //now outside
+
+    //first inside
+    for (int i = 0; i < count; i++) {
+
+        double phi = randomDouble(0, 360);
+        double rho = randomDouble(testFieldPtr->q2GridPtr->maxVal, 2*testFieldPtr->q2GridPtr->maxVal);
+        double z = randomDouble(testFieldPtr->q3GridPtr->minVal, testFieldPtr->q3GridPtr->maxVal);
+
+        cylindricalToCartesian(&x, &y, phi, rho);
+        result = !contains(testFieldPtr, x, y, z);
+        mu_assert("The (outside) boundary contains test failed (A).", result);
+
+        rho = randomDouble(testFieldPtr->q2GridPtr->minVal, testFieldPtr->q2GridPtr->maxVal);
+        z = randomDouble(-1000, testFieldPtr->q3GridPtr->minVal-0.01);
+
+        result = !contains(testFieldPtr, x, y, z);
+        mu_assert("The (outside) boundary contains test failed (B).", result);
+
+        rho = randomDouble(testFieldPtr->q2GridPtr->minVal, testFieldPtr->q2GridPtr->maxVal);
+        z = randomDouble(testFieldPtr->q3GridPtr->maxVal+0.01, 2000);
+
+        result = !contains(testFieldPtr, x, y, z);
+        mu_assert("The (outside) boundary contains test failed (B).", result);
+    }
+
+
+    fprintf(stdout, "\nPASSED containsUnitTest\n");
+    return NULL;
+}
+
+/**
  * A unit test for the composite indexing
  * @return an error message if the test fails, or NULL if it passes.
  */
@@ -425,7 +522,7 @@ char *compositeIndexUnitTest() {
     bool result;
 
     for (int i = 0; i < count; i++) {
-        int compositeIndex = randomInt(0, 0, testFieldPtr->numValues-1);
+        int compositeIndex = randomInt(0, testFieldPtr->numValues-1);
 
         //break it apart an put it back together.
         getCoordinateIndices(testFieldPtr, compositeIndex, &q1Index, &q2Index, &q3Index);

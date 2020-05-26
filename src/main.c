@@ -22,17 +22,22 @@ static MagneticFieldPtr solenoid;
  * return: NULL or the first failed test message
  */
 static char *allTests() {
+    fprintf(stdout, "\n\n***** Unit tests ****** \n");
     mu_run_test(gridUnitTest);
     mu_run_test(randomUnitTest);
+    mu_run_test(conversionUnitTest);
 
-    fprintf(stdout, "\nTORUS");
+    fprintf(stdout, "\n  [TORUS]");
     testFieldPtr = torus;
     mu_run_test(compositeIndexUnitTest);
+    mu_run_test(containsUnitTest);
 
     testFieldPtr = solenoid;
-    fprintf(stdout, "\nSOLENOID");
+    fprintf(stdout, "\n  [SOLENOID]");
     mu_run_test(compositeIndexUnitTest);
+    mu_run_test(containsUnitTest);
 
+    fprintf(stdout, "\n ***** End of unit tests ******\n");
     return NULL;
 }
 
@@ -90,6 +95,8 @@ int main(int argc, const char * argv[]) {
 
     freeFieldMap(torus);
     freeFieldMap(solenoid);
+
+  //  setAlgorithm(NEAREST_NEIGHBOR);
 
   //  FieldValuePtr fieldValuePtr = (FieldValuePtr) malloc(sizeof (FieldValue));
   //  getCompositeFieldValue(fieldValuePtr, 200, 200, 300, torus, solenoid);

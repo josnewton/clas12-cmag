@@ -13,6 +13,7 @@
 #include <math.h>
 #include <time.h>
 
+
 /**
  * Create a uniform (equally spaced) coordinate coordinate grid.
  * @param the name of the coordinate, e.g. "phi".
@@ -121,7 +122,7 @@ char *gridUnitTest() {
     for (int i = 0; i < numTestPoints; i++) {
 
 
-        float val = minVal + (float)(range*drand48());
+        float val = (float)(randomDouble(minVal, maxVal));
         int index = getIndex(gridPtr, val);
 
         //result should be true if we pass
