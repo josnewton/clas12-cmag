@@ -8,6 +8,14 @@
 \usepackage{hyperref}
 \usepackage{pdfpages}
 \usepackage[parfill]{parskip}
+\usepackage{xcolor}
+\hypersetup{
+    colorlinks,
+    linkcolor={red!50!black},
+    citecolor={blue!50!black},
+    urlcolor={blue!80!black}
+}
+
 
 \setlength{\parindent}{0cm}
 \thispagestyle{empty}
@@ -43,8 +51,8 @@
 
 \maketitle
 \begin{abstract}
-   The standard CLAS12 magnetic field that reads and interpolates the binary field maps for the solenoid and torus was written in JAVA. The package described here reproduces the same functionality in \emph{C}. That's  \emph{C}, not \emph{C++}, 
-\footnote{The reason should be obvious. \emph{C} is the most beautiful programming language ever created while, remarkably, \emph{C++} is the most hideous. This is not a matter of opinion.\\},\footnote{Pointer arithmetic, fine-grained control over memory (what could go wrong?), a preprocessor that allows you to hide critical code in impenetrable macros, and a type-unsafe compiler that looks at your line of code that equates an integer pointer to an array of strings and says: \textit{``Cool, that works for me! I'm sure you know what you are doing."} I mean, how can you not love it!\\}
+   The standard CLAS12 magnetic field package that reads and interpolates the binary field maps for the solenoid and torus was written in JAVA. The package described here reproduces the same functionality in \emph{C}. That's  \emph{C}, not \emph{C++}, 
+\footnote{The reason should be obvious. \emph{C} is the most beautiful programming language ever created while, remarkably, \emph{C++} is the most hideous. This is not a matter of opinion.\\},\footnote{Pointer arithmetic, fine-grained and absolute control over memory (what could go wrong?), a preprocessor that allows you to hide critical code in impenetrable macros, and a type-unsafe compiler that looks at your line of code that equates an integer pointer to an array of strings and says: \textit{``Cool, that works for me! I'm sure you know what you are doing."} I mean, how can you not love it!\\}
  but of course it can used in a \emph{C++} program. The most important feature is that it reads the same field map files as the JAVA version. The code has been tested on OSX 10.15.4, ubuntu linux 20.04, and one other operating system. \footnote[666]{That would be Windows 10.}
 
 
@@ -55,7 +63,7 @@
 \newpage
 
 \section {Introduction}
-The magnetic field package used by \textit{ced} and by the CLAS12 reconstruction was written in JAVA. The  binary field map files used by the magnetic field package were written in JAVA\footnote{That's relevant, because JAVA specified that data be stored in big endian ordering on all platforms independent of architecture, while most of the machines we use in CLAS are little endian.\\}. However, the CLAS12 simulation, GEMC, is written in \textit{C++} and reads ascii field map files. In spite of great effort and testing, there is always a nagging suspicion that the simulation and reconstruction are using slightly different fields. This package, \textit{cMag}, was commissioned to solve that problem, so that GEMC could read the binary maps. However, \textit{cMag} goes beyond simply reading the maps, it also provides the same tri-linear interpolation access to the fields that the JAVA package uses. This may be of use to other \textit{C} and \textit{C++} CLAS12 developments. 
+The magnetic field package used by \textit{ced} and by the CLAS12 reconstruction was written in JAVA. The  binary field map files used by the magnetic field package were written in JAVA\footnote{That's relevant, because JAVA sensibly decreed that data be stored in network format (which is big endian byte ordering) on all platforms independent of architecture, while most of the machines we use in CLAS are little endian.\\}. However, the CLAS12 simulation, GEMC, is written in \textit{C++} and reads ascii field map files. In spite of great effort and testing, there is always a nagging suspicion that the simulation and reconstruction are using slightly different fields. This package, \textit{cMag}, was commissioned to solve that problem, so that GEMC could read the binary maps. However, \textit{cMag} goes beyond simply reading the maps, it also provides the same tri-linear interpolation access to the fields that the JAVA package uses. This may be of use to other \textit{C} and \textit{C++} CLAS12 developments. 
 
 \section {Where do I get it?}
 \subsection {The Code}
@@ -72,23 +80,23 @@ In Appendix B of this document you will find a description of the format of the 
 
 
 \section {Building}
-After cloning the \textit{cMag} repository, simply work your way down to the \texttt{src} folder where you will find a \texttt{Makefile}. Now, I have not written a makefile since CLAS was a 6\ GeV toddler, but I do seem to recall that they are always very portable and never cause any grief. So I am comfortable that simply typing\\
+After cloning the \textit{cMag} repository, simply work your way down to the \texttt{src} folder where you will find a \texttt{Makefile}. Now, I have not written a makefile since CLAS was a 6\ GeV toddler, but I do seem to recall that they are always very portable and never cause any grief. So I am comfortable that simply typing:
 
-\textbf{\texttt{\$make}}\\
+\textbf{\texttt{\$make}}
 
 will work on any platform. 
 
-If it worked, you should now have top-level \texttt{bin} and \texttt{lib} directories. Inside of \texttt{bin} should be an executable, \texttt{cMagTest}. Inside of \texttt{lib} should be the static library \texttt {libcMag.a}. Use that library, and the include files in the \texttt{includes} directory, to add the \text{cMag} functionality to your program.
+If it worked, you should now have top-level \texttt{bin} and \texttt{lib} directories. Inside of \texttt{bin} should be an executable, \texttt{cMagTest}. Inside of \texttt{lib} should be the static library, \texttt {libcMag.a}. Use that library, and the include files in the \texttt{includes} directory, to add the \text{cMag} functionality to your program.
 
 
 \subsection {Unit Testing}
 Assuming the build worked (and why shouldn't it?) the first thing you should do is run \texttt{bin/cMagTest} and see if it produces happy output (it does unit testing.) 
 
-But wait just a moment. Running  \texttt{cMagTest} is the \textit{first} thing you should do, which every programmer knows is the second thing you should do. The \textit{zeroth} thing you should do, obviously before the first thing, is to make sure you have bonafide CLAS12 magnetic fields.  As mentioned earlier, they can be downloaded from here:\\
+But wait just a moment. Running  \texttt{cMagTest} is the \textit{first} thing you should do, which every programmer knows is the second thing you should do. The \textit{zeroth} thing you should do, obviously first, i.e., before the first thing, is to make sure you have bonafide CLAS12 magnetic fields.  As mentioned earlier, they can be downloaded from here:\\
 
  \url{https://clasweb.jlab.org/clas12offline/magfield/}.\\
 \vspace{1mm}\\
-Of the magnetic fields you will find there, the two that \texttt{bin/cMagTest}  requires to run its tests are:\\
+Of the magnetic fields you will find there, the two that \texttt{cMagTest}  requires to run its tests are:\\
 
 \begin{verbatim}
     Symm_solenoid_r601_phi1_z1201_13June2018.dat
@@ -105,13 +113,13 @@ Let's suppose your username is \texttt{yomama} and you have downloaded the magne
 
 If you do not provide a directory as a command line argument, \texttt{cMagTest} will try one and only one place: \texttt{\$(HOME)/magfield}. So you can put the field map files there and dispense with the command line argument.
 
-It will produce a \textit{lot} of output which you may or may not find interesting.  What you really care about is that \texttt{cMagTest} terminates\footnote{Depending on the OS, it may be the last line of output or the penultimate line, the latter being the case when the OS obligingly prints:\\ \texttt{Process finished with exit code 0}.\\} with the console print: 
+While running, \texttt{cMagTest}  will produce a \textit{lot} of output which you may or may not find interesting.  What you really care about is that \texttt{cMagTest} terminates\footnote{Depending on the OS, it may be the last line of output or the penultimate line, the latter being the case when the OS obligingly prints:\\ \texttt{Process finished with exit code 0}.\\} with the console print: 
 
 \texttt{Program ran successfully. }
 
 If one of the unit test fails it will say, well, something else, depending on which test failed first.
 \section {Usage}
-Assuming the build worked, and the testing was successful, you are ready to use the package. We will not discuss how to link \texttt{/lib/libMag.a}; you surely know how. We will discuss how to \textit{use} it after it has been successfully  linked. Here we describe only the``public" functions, i.e. the ones you will likely use. \footnote{Of course \textit{C}, being a highly democratic and progressive language, does not hide anything, so there is really no elitist distinction between ``public" and ``private".  In \textit{C} such "binary" adjectives are discouraged.  In short, there are many more functions available, the functions that the``public" functions call upon. These functions  are accessible if you seek to cause mischief.\\} The complete API is provided as an appendix.
+Assuming the build worked, and the testing was successful, you are ready to use the package. We will not discuss how to link \texttt{/lib/libMag.a}; you surely know how. We will discuss how to \textit{use} it after it has been successfully  linked. Here we describe only the ``public" functions, i.e. the ones you will likely use. \footnote{Of course \textit{C}, being a highly democratic and progressive language, does not hide anything, so there is really no elitist distinction between ``public" and ``private".  In \textit{C} such "binary" adjectives are discouraged.  In short, there are many more functions available, the functions that the``public" functions call upon. These functions  are accessible if you seek to cause mischief.\\} The complete API is provided in Appendix A.
 
 We will begin with the first step, the initialization, which is the step that will most often go wrong. If you make it through the initialization, everything else should be smooth sailing.
 \subsection{Initialization}
@@ -135,7 +143,7 @@ if (solenoid == NULL}  {
 
 \end{verbatim}
 
-where \texttt{torusPath} and \texttt{solenoidPath} are strings , each containing the full path to the maps you want to load. Or maybe not. It is permissible to pass \texttt{NULL} as the path argument. More about that is a second. 
+where \texttt{torusPath} and \texttt{solenoidPath} are strings, each containing the full path to the maps you want to load. Or maybe not. It is permissible to pass \texttt{NULL} as the path argument. More about that is a second. 
 
 How do you know it it worked? Well, there  should be some error prints if an initialization failed. But the programmatic test is whether the returned points are \texttt{NULL}. 
 
@@ -189,7 +197,7 @@ Since that is often the case. \footnote{We agonized over whether to make the def
 
 
 \subsection{Obtaining Field Values}
-Here we are: the meat and potatoes section. Everything has built with nary a glitch, all the unit tests have passed,  and the field map files are downloaded, and the library \texttt{libCMag.a} is linked in. \footnote{Again, we will not comment on the link process, which for complex codes (not \texttt{cMag} which is embarassingly simple, but for whatever is attempting to link \texttt{libCMag.a}, --which is likely to be complex beyond our ability to comprehend. ) generally leads to much weeping and gnashing of teeth. But just one note: \texttt{libCMag.a} does depend on the ubiquitous \textit{C} math library, \texttt{libm.a}. No doubt you code already links that with a dash of \texttt{-lm}, but for full disclosure we are putting the dependancy down on paper.\\}
+Here we are: the meat and potatoes section. Everything has built with nary a glitch, all the unit tests have passed,  and the field map files are downloaded, and the library \texttt{libCMag.a} is linked in. \footnote{Again, we will not comment on the link process, which for complex codes (not \texttt{cMag} which is embarrassingly simple, but for whatever is attempting to link \texttt{libCMag.a}, --which is likely to be complex beyond our ability to comprehend) generally leads to much weeping and gnashing of teeth. But just one note: \texttt{libCMag.a} does depend on the ubiquitous \textit{C} math library, \texttt{libm.a}. No doubt your code already links that with a dash of \texttt{-lm}, but for full disclosure we are putting the dependency down on paper.\\}
 
 \subsection {Miscellany}
 In case you'd like to know how the formatted creation date is obtained from the high and low words in the header, it's like this:
@@ -215,4 +223,6 @@ return ctime(&utime);
 Provided mostly for completeness, and demonstrating the raw power of \LaTeX, the fieldmap file format document has been inserted starting on the next page. If that doesn't work, the document is also included in the  \texttt{docs} directory of the \textit{cMag} distribution. \footnote{ As, self-rerentially, this document is, referring to the location where it is stored at the location where it is stored.}
 \includepdf[pages=-,pagecommand={},width=\textwidth]{FieldmapFileFormat.pdf}
 
+------------------\\
+END OF DOCUMENT
 \end{document}

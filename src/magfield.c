@@ -8,11 +8,11 @@
 #include "magfield.h"
 #include "magfieldutil.h"
 #include "munittest.h"
-#include "math.h"
 
 #include <stdlib.h>
 #include <stdarg.h>
 #include <time.h>
+#include <math.h>
 
 //coordinate names
 static const char *q1Names[] = { "phi", "x" };
@@ -100,6 +100,29 @@ MagneticFieldPtr initializeSolenoid(const char *solenoidPath) {
 
 /**
  * This checks whether the given point is within the boundary of the field. This is so the methods
+ * that retrieve a field value can short-circuit to zero. Note ther is no phi parameter, because
+ * all values of phi are "contained."
+ * NOTE: this assumes, as is the case at the time of writing, that the CLAS12 fields have grids
+ * in cylindrical coordinates and length units of cm.
+ * @param fieldPtr
+ * @param rho the rho (q2) coordinate in cm.
+ * @param z the z (q3) coordinate in cm.
+ * @return true if the point is within the boundary of the field.
+ */
+bool containsCylindrical(MagneticFieldPtr fieldPtr, double rho, double z) {
+    if ((z < fieldPtr->q3GridPtr->minVal) || (z > fieldPtr->q3GridPtr->maxVal)) {
+        return false;
+    }
+
+    if ((rho < fieldPtr->q2GridPtr->minVal) || (rho > fieldPtr->q2GridPtr->maxVal)) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * This checks whether the given point is within the boundary of the field. This is so the methods
  * that retrieve a field value can short-circuit to zero.
  * NOTE: this assumes, as is the case at the time of writing, that the CLAS12 fields have grids
  * in cylindrical coordinates and length units of cm.
@@ -109,7 +132,7 @@ MagneticFieldPtr initializeSolenoid(const char *solenoidPath) {
  * @param z the z coordinate in cm.
  * @return true if the point is within the boundary of the field.
  */
-bool contains(MagneticFieldPtr fieldPtr, double x, double y, double z) {
+bool containsCartesian(MagneticFieldPtr fieldPtr, double x, double y, double z) {
 
     if ((z < fieldPtr->q3GridPtr->minVal) || (z > fieldPtr->q3GridPtr->maxVal)) {
         return false;
@@ -228,6 +251,20 @@ void getFieldValue(FieldValuePtr fieldValuePtr,
                    float z,
                    MagneticFieldPtr fieldPtr) {
 
+    //see if we are contained
+    double rho = hypot(x, y);
+
+    if (!containsCylindrical(fieldPtr, rho, z)) {
+        fieldValuePtr->b1 = 0;
+        fieldValuePtr->b2 = 0;
+        fieldValuePtr->b3 = 0;
+    } else {
+
+        //scale the field
+        fieldValuePtr->b1 *= fieldPtr->scale;
+        fieldValuePtr->b2 *= fieldPtr->scale;
+        fieldValuePtr->b3 *= fieldPtr->scale;
+    }
 }
 
 /**
@@ -253,10 +290,19 @@ void getCompositeFieldValue(FieldValuePtr fieldValuePtr,
         MagneticFieldPtr fieldPtr, ...) {
     va_list valist;
 
+    fieldValuePtr->b1 = 0;
+    fieldValuePtr->b2 = 0;
+    fieldValuePtr->b3 = 0;
+
+    FieldValue temp;
+
     va_start(valist, fieldPtr); //initialize valist for num number of arguments
     while (fieldPtr != NULL) {
-        fprintf(stdout, "USING %s\n", (fieldPtr->type == TORUS) ? "TORUS" : "SOLENOID");
         fieldPtr = va_arg(valist, MagneticFieldPtr);
+        getFieldValue(&temp, x, y, z, fieldPtr);
+        fieldValuePtr->b1 += temp.b1;
+        fieldValuePtr->b2 += temp.b2;
+        fieldValuePtr->b3 += temp.b3;
     }
 }
 
@@ -475,7 +521,7 @@ char *containsUnitTest() {
         double z = randomDouble(testFieldPtr->q3GridPtr->minVal, testFieldPtr->q3GridPtr->maxVal);
 
         cylindricalToCartesian(&x, &y, phi, rho);
-        result = contains(testFieldPtr, x, y, z);
+        result = containsCartesian(testFieldPtr, x, y, z);
 
         mu_assert("The (inside) boundary contains test failed.", result);
     }
@@ -490,19 +536,19 @@ char *containsUnitTest() {
         double z = randomDouble(testFieldPtr->q3GridPtr->minVal, testFieldPtr->q3GridPtr->maxVal);
 
         cylindricalToCartesian(&x, &y, phi, rho);
-        result = !contains(testFieldPtr, x, y, z);
+        result = !containsCartesian(testFieldPtr, x, y, z);
         mu_assert("The (outside) boundary contains test failed (A).", result);
 
         rho = randomDouble(testFieldPtr->q2GridPtr->minVal, testFieldPtr->q2GridPtr->maxVal);
         z = randomDouble(-1000, testFieldPtr->q3GridPtr->minVal-0.01);
 
-        result = !contains(testFieldPtr, x, y, z);
+        result = !containsCartesian(testFieldPtr, x, y, z);
         mu_assert("The (outside) boundary contains test failed (B).", result);
 
         rho = randomDouble(testFieldPtr->q2GridPtr->minVal, testFieldPtr->q2GridPtr->maxVal);
         z = randomDouble(testFieldPtr->q3GridPtr->maxVal+0.01, 2000);
 
-        result = !contains(testFieldPtr, x, y, z);
+        result = !containsCartesian(testFieldPtr, x, y, z);
         mu_assert("The (outside) boundary contains test failed (B).", result);
     }
 

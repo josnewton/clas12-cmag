@@ -27,6 +27,7 @@ const char *fieldUnitLabels[] = { "kG", "G", "T" };
 
 //local prototypes
 static void freeGrid(GridPtr gridPtr);
+static void resetCell(Cell3D *);
 
 /**
  * Convert an angle from radians to degrees.
@@ -211,13 +212,18 @@ void printFieldValue(FieldValuePtr fvPtr, FILE *stream) {
   * @return a pointer to an empty field map structure.
   */
 MagneticFieldPtr createFieldMap() {
-    MagneticFieldPtr magPtr = (MagneticFieldPtr) malloc(sizeof(MagneticField));
-    magPtr->metricsPtr = (FieldMetricsPtr) malloc(sizeof(FieldMetrics));
-    magPtr->scale = 1;
-    magPtr->shiftX = 0;
-    magPtr->shiftY = 0;
-    magPtr->shiftZ = 0;
-    return magPtr;
+     MagneticFieldPtr fieldPtr = (MagneticFieldPtr) malloc(sizeof(MagneticField));
+     fieldPtr->metricsPtr = (FieldMetricsPtr) malloc(sizeof(FieldMetrics));
+     fieldPtr->scale = 1;
+     fieldPtr->shiftX = 0;
+     fieldPtr->shiftY = 0;
+     fieldPtr->shiftZ = 0;
+
+     //initialize the cell
+     fieldPtr->cell.fieldPtr = fieldPtr;
+     resetCell(&(fieldPtr->cell));
+
+     return fieldPtr;
 }
 
 
@@ -338,4 +344,17 @@ char *randomUnitTest() {
 
     fprintf(stdout, "\nPASSED randomUnitTest\n");
     return NULL;
+}
+
+/**
+ * Reset the cell to "contains nothing" values.
+ * @param cell the cell to reset.
+ */
+static void resetCell(Cell3D *cell) {
+    cell->q1max = -INFINITY;
+    cell->q1min = INFINITY;
+    cell->q2max = -INFINITY;
+    cell->q2min = INFINITY;
+    cell->q3max = -INFINITY;
+    cell->q3min = INFINITY;
 }

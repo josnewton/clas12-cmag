@@ -76,6 +76,22 @@ typedef struct fieldmetrics {
 
 } FieldMetrics;
 
+typedef struct cell3d {
+
+    MagneticFieldPtr fieldPtr; //the owner of the cell
+
+    //cell boundaries
+    double q1min;  //minimum value of q1 for the cell
+    double q1max;  //maximum value of q1 for the cell
+
+    double q2min;  //minimum value of q2 for the cell
+    double q2max;  //maximum value of q2 for the cell
+
+    double q3min;  //minimum value of q3 for the cell
+    double q3max;  //maximum value of q3 for the cell
+
+} Cell3D;
+
 //holds the entire field map
 typedef struct magneticfield {
     FieldMapHeaderPtr headerPtr; //pointer to the header data
@@ -93,6 +109,8 @@ typedef struct magneticfield {
     GridPtr q3GridPtr;
 
     FieldMetricsPtr metricsPtr; //some field metrics
+
+    Cell3D cell;  //the cell, or probe
     
     float scale; //scale factor of the field
 
@@ -118,6 +136,7 @@ extern FieldValuePtr getFieldAtIndex(MagneticFieldPtr, int );
 extern void getFieldValue(FieldValuePtr, float, float, float, MagneticFieldPtr);
 extern void getCompositeFieldValue(FieldValuePtr, float, float, float, MagneticFieldPtr, ...);
 extern void setAlgorithm(enum Algorithm);
-bool contains(MagneticFieldPtr, double, double, double);
+bool containsCartesian(MagneticFieldPtr, double, double, double);
+bool containsCylindrical(MagneticFieldPtr, double, double);
 
 #endif /* magfield_h */
