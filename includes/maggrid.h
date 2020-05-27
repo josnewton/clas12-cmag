@@ -13,24 +13,25 @@
 
 typedef struct grid *GridPtr;
 
-extern enum Algorithm {INERPOLATION, NEAREST_NEIGHBOR} fieldAlgorithm;
+extern enum Algorithm {INTERPOLATION, NEAREST_NEIGHBOR} fieldAlgorithm;
 
 /**
  * Holds the uniformly spaced grid values for a coordinate.
  */
 typedef struct grid {
         char *name;    //the name of the coordinate, e.g., "phi".
-        float minVal;  //the min value of the coordinate
-        float maxVal;  //the max value of the coordinate
+        double minVal;  //the min value of the coordinate
+        double maxVal;  //the max value of the coordinate
         unsigned int num; //the number of vals including the ends
-        float delta; // (max-min)/(n-1)
-        float *values; //values of the coordinates
+        double delta; // (max-min)/(n-1)
+        double *values; //values of the coordinates
 } Grid;
 
 //external prototypes
-extern GridPtr createGrid(const char*, float, float, unsigned int);
+extern GridPtr createGrid(const char*, double, double, unsigned int);
 extern char *gridStr(GridPtr);
-float valueAtIndex(GridPtr, int);
-char *gridUnitTest(void);
+extern double valueAtIndex(GridPtr, int);
+extern char *gridUnitTest(void);
+extern int getIndex(const GridPtr, const double);
 
 #endif /* maggrid_h */

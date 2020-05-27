@@ -139,9 +139,9 @@ void printFieldSummary(MagneticFieldPtr fieldPtr, FILE *stream) {
     fprintf(stream, "scale factor: %-6.2f\n", fieldPtr->scale);
 
     //print the grid info for the three coordinate grids
-    fprintf(stream, "%s\n", gridStr(fieldPtr->q1GridPtr));
-    fprintf(stream, "%s\n", gridStr(fieldPtr->q2GridPtr));
-    fprintf(stream, "%s\n", gridStr(fieldPtr->q3GridPtr));
+    fprintf(stream, "%s\n", gridStr(fieldPtr->phiGridPtr));
+    fprintf(stream, "%s\n", gridStr(fieldPtr->rhoGridPtr));
+    fprintf(stream, "%s\n", gridStr(fieldPtr->zGridPtr));
 
     fprintf(stream, "num field values: %d\n", fieldPtr->numValues);
     fprintf(stream, "grid cs: %s\n", csLabels[headerPtr->gridCS]);
@@ -156,9 +156,6 @@ void printFieldSummary(MagneticFieldPtr fieldPtr, FILE *stream) {
     fprintf(stream, "max field at index: %d\n",
             fieldPtr->metricsPtr->maxFieldIndex);
 
-    //get the location of the max field
-    int q1index, q2index, q3index;
-    getCoordinateIndices(fieldPtr, fieldPtr->metricsPtr->maxFieldIndex, &q1index, &q2index, &q3index);
 
     fprintf(stream, "max field magnitude: %-10.6f %s\n",
             fieldPtr->metricsPtr->maxFieldMagnitude, fieldUnits(fieldPtr));
@@ -168,11 +165,12 @@ void printFieldSummary(MagneticFieldPtr fieldPtr, FILE *stream) {
     printFieldValue(fieldValPtr, stdout);
 
     //get the location of the max field
-    int q1Index, q2Index, q3Index;
-    getCoordinateIndices(fieldPtr, fieldPtr->metricsPtr->maxFieldIndex, &q1Index, &q2Index, &q3Index);
-    float phi = fieldPtr->q1GridPtr->values[q1Index];
-    float rho = fieldPtr->q2GridPtr->values[q2Index];
-    float z = fieldPtr->q3GridPtr->values[q3Index];
+    int phiIndex, rhoIndex, zIndex;
+
+    invertCompositeIndex(fieldPtr, fieldPtr->metricsPtr->maxFieldIndex, &phiIndex, &rhoIndex, &zIndex);
+    double phi = fieldPtr->phiGridPtr->values[phiIndex];
+    double rho = fieldPtr->rhoGridPtr->values[rhoIndex];
+    double z = fieldPtr->zGridPtr->values[zIndex];
     fprintf(stdout, "max field location (phi, rho, z) = (%-6.2f, %-6.2f, %-6.2f)\n", phi, rho, z);
     fprintf(stdout, "avg field magnitude: %-10.6f %s", fieldPtr->metricsPtr->avgFieldMagnitude, fieldUnits(fieldPtr));
 }
@@ -219,10 +217,6 @@ MagneticFieldPtr createFieldMap() {
      fieldPtr->shiftY = 0;
      fieldPtr->shiftZ = 0;
 
-     //initialize the cell
-     fieldPtr->cell.fieldPtr = fieldPtr;
-     resetCell(&(fieldPtr->cell));
-
      return fieldPtr;
 }
 
@@ -233,9 +227,16 @@ MagneticFieldPtr createFieldMap() {
  */
 void freeFieldMap(MagneticFieldPtr fieldPtr) {
     free(fieldPtr->metricsPtr);
-    freeGrid(fieldPtr->q1GridPtr);
-    freeGrid(fieldPtr->q2GridPtr);
-    freeGrid(fieldPtr->q3GridPtr);
+    freeGrid(fieldPtr->phiGridPtr);
+    freeGrid(fieldPtr->rhoGridPtr);
+    freeGrid(fieldPtr->zGridPtr);
+
+    if (fieldPtr->type == TORUS) {
+        freeCell3D(fieldPtr->cell3DPtr);
+    }
+    else {
+        freeCell2D(fieldPtr->cell2DPtr);
+    }
     free(fieldPtr);
 }
 
@@ -292,7 +293,7 @@ double randomDouble(double minVal, double maxVal) {
 char *conversionUnitTest() {
     srand48(time(0)); //seed random
 
-    int num = 10000;
+    int num = 1000000;
 
     double x, y, phi, rho, tx, ty;
 
@@ -351,10 +352,10 @@ char *randomUnitTest() {
  * @param cell the cell to reset.
  */
 static void resetCell(Cell3D *cell) {
-    cell->q1max = -INFINITY;
-    cell->q1min = INFINITY;
-    cell->q2max = -INFINITY;
-    cell->q2min = INFINITY;
-    cell->q3max = -INFINITY;
-    cell->q3min = INFINITY;
+    cell->phiMax = -INFINITY;
+    cell->phiMin = INFINITY;
+    cell->rhoMax = -INFINITY;
+    cell->rhoMin = INFINITY;
+    cell->zMax = -INFINITY;
+    cell->zMin = INFINITY;
 }

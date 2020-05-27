@@ -12,6 +12,7 @@
 #include "magfield.h"
 #include "munittest.h"
 #include "magfieldutil.h"
+#include "svg.h"
 
 //the two fields we'll try to initialize
 static MagneticFieldPtr torus;
@@ -93,6 +94,7 @@ int main(int argc, const char * argv[]) {
     testFieldPtr = torus; //used for unit test
     char *testResult = allTests();
 
+    //make sure the frees don't blow up
     freeFieldMap(torus);
     freeFieldMap(solenoid);
 
@@ -102,12 +104,16 @@ int main(int argc, const char * argv[]) {
   //  getCompositeFieldValue(fieldValuePtr, 200, 200, 300, torus, solenoid);
   //  free (fieldValuePtr);
 
+
+
     if (testResult != NULL) {
         fprintf(stdout, "Unit test failed: [%s]\n", testResult);
     }
     else {
         fprintf(stdout, "\nProgram ran successfully.\n");
     }
+
+  //  svgTest();
     return (testResult == NULL) ? 0 : 1;
 }
 

@@ -27,6 +27,8 @@ typedef struct fieldmapheader *FieldMapHeaderPtr;
 typedef struct magneticfield *MagneticFieldPtr;
 typedef struct fieldmetrics *FieldMetricsPtr;
 typedef struct fieldvalue *FieldValuePtr;
+typedef struct cell3d *Cell3DPtr;
+typedef struct cell2d *Cell2DPtr;
 
 //some strings for prints
 extern const char *csLabels[];
@@ -63,34 +65,71 @@ typedef struct fieldmapheader {
 
 //holds a single field value
 typedef struct fieldvalue {
-    float b1; //1st component (Bphi for solenoid, Bx for torus)
-    float b2; //2nd component (Brho for solenoid, By for torus)
-    float b3; //3rd component (Bz for solenoid and also for torus)
+    float b1; //1st component of field
+    float b2; //2nd component of field
+    float b3; //3rd component of field
 } FieldValue;
 
 //holds some metrics of the field
 typedef struct fieldmetrics {
-  unsigned int maxFieldIndex; //the index where we find the max field value
-  double maxFieldMagnitude; //the value of the max field index
-  double avgFieldMagnitude; //the average field magnitude
+    unsigned int maxFieldIndex; //the index where we find the max field value
+    double maxFieldMagnitude; //the value of the max field index
+    double avgFieldMagnitude; //the average field magnitude
 
 } FieldMetrics;
 
+//3d cell is used by torus
 typedef struct cell3d {
 
     MagneticFieldPtr fieldPtr; //the owner of the cell
 
     //cell boundaries
-    double q1min;  //minimum value of q1 for the cell
-    double q1max;  //maximum value of q1 for the cell
+    double phiMin;  //minimum value of phi for the cell
+    double phiMax;  //maximum value of phi for the cell
 
-    double q2min;  //minimum value of q2 for the cell
-    double q2max;  //maximum value of q2 for the cell
+    double rhoMin;  //minimum value of rho for the cell
+    double rhoMax;  //maximum value of rho for the cell
 
-    double q3min;  //minimum value of q3 for the cell
-    double q3max;  //maximum value of q3 for the cell
+    double zMin;  //minimum value of z for the cell
+    double zMax;  //maximum value of z for the cell
 
+    int phiIndex; //phi index of cell
+    int rhoIndex; //rho index of cell
+    int zIndex;   //z index of cell
+
+    double phiNorm; //cached value to speed up evaluation
+    double rhoNorm; //cached value to speed up evaluation
+    double zNorm; //cached value to speed up evaluation
+
+    // space used by the cell.
+    double f[3];
+    double g[3];
+    double a[8];
+
+    FieldValue b[2][2][2]; //field at 4 corners of cell
 } Cell3D;
+
+//2d cell is used by solenoid
+typedef struct cell2d {
+
+    MagneticFieldPtr fieldPtr; //the owner of the cell
+
+    //cell boundaries
+    double rhoMin;  //minimum value of rho for the cell
+    double rhoMax;  //maximum value of rho for the cell
+
+    double zMin;  //minimum value of z for the cell
+    double zMax;  //maximum value of z for the cell
+
+    int rhoIndex; //rho index of cell
+    int zIndex;   //z index of cell
+
+    double rhoNorm; //cached value to speed up evaluation
+    double zNorm; //cached value to speed up evaluation
+
+    FieldValue b[2][2]; //field at 4 corners of cell
+
+} Cell2D;
 
 //holds the entire field map
 typedef struct magneticfield {
@@ -104,19 +143,20 @@ typedef struct magneticfield {
     unsigned int numValues;  //total number of field values
 
     //a grid pointer for each coordinate
-    GridPtr q1GridPtr;
-    GridPtr q2GridPtr;
-    GridPtr q3GridPtr;
+    GridPtr phiGridPtr;
+    GridPtr rhoGridPtr;
+    GridPtr zGridPtr;
 
     FieldMetricsPtr metricsPtr; //some field metrics
 
-    Cell3D cell;  //the cell, or probe
-    
-    float scale; //scale factor of the field
+    Cell3DPtr cell3DPtr;  //the cell, or probe for torus
+    Cell2DPtr cell2DPtr;  //the cell, or probe for solenoid
 
-    float shiftX; //misplacement shift in the x direction (cm)
-    float shiftY; //misplacement shift in the y direction (cm)
-    float shiftZ; //misplacement shift in the z direction (cm)
+    double scale; //scale factor of the field
+
+    double shiftX; //misplacement shift in the x direction (cm)
+    double shiftY; //misplacement shift in the y direction (cm)
+    double shiftZ; //misplacement shift in the z direction (cm)
 
     //some auxiliary data to cache
     unsigned int N23; // for faster indexing
@@ -129,14 +169,24 @@ typedef struct magneticfield {
 extern MagneticFieldPtr initializeTorus(const char *);
 extern MagneticFieldPtr initializeSolenoid(const char *);
 extern int getCompositeIndex(MagneticFieldPtr, int, int, int);
-extern void getCoordinateIndices(MagneticFieldPtr, int, int *, int *, int *);
+extern void invertCompositeIndex(MagneticFieldPtr fieldPtr, int index, int *phiIndex, int *rhoIndex, int *zIndex);
 extern char *compositeIndexUnitTest();
 extern char *containsUnitTest();
 extern FieldValuePtr getFieldAtIndex(MagneticFieldPtr, int );
-extern void getFieldValue(FieldValuePtr, float, float, float, MagneticFieldPtr);
-extern void getCompositeFieldValue(FieldValuePtr, float, float, float, MagneticFieldPtr, ...);
+extern void getFieldValue(FieldValuePtr, double, double, double, MagneticFieldPtr);
+extern void getCompositeFieldValue(FieldValuePtr, double, double, double, MagneticFieldPtr, ...);
 extern void setAlgorithm(enum Algorithm);
 bool containsCartesian(MagneticFieldPtr, double, double, double);
 bool containsCylindrical(MagneticFieldPtr, double, double);
+
+extern void createCell3D(MagneticFieldPtr);
+extern void createCell2D(MagneticFieldPtr);
+extern void freeCell3D(Cell3DPtr);
+extern void freeCell2D(Cell2DPtr);
+extern void resetCell3D(Cell3DPtr, double, double, double);
+extern void resetCell2D(Cell2DPtr, double, double);
+
+extern void getCoordinateIndices(MagneticFieldPtr, double, double, double,
+                          int *, int *, int *);
 
 #endif /* magfield_h */

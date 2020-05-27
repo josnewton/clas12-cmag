@@ -3,7 +3,6 @@
 //  cMag
 //
 //  Created by David Heddle on 5/22/20.
-//  Copyright © 2020 David Heddle. All rights reserved.
 //
 
 #include "maggrid.h"
@@ -22,7 +21,7 @@
  * @param num the number of points on the grid, including the ends.
  * @return a pointer to the coordinate grid.
  */
-GridPtr createGrid(const char *name, const float minVal, const float maxVal,
+GridPtr createGrid(const char *name, const double minVal, const double maxVal,
         const unsigned int num) {
     GridPtr gridPtr;
 
@@ -35,11 +34,11 @@ GridPtr createGrid(const char *name, const float minVal, const float maxVal,
 
     if (num < 2) { //happens for solenoid q1 only
         gridPtr->delta = INFINITY;
-        gridPtr->values = (float*) malloc(sizeof(float));
+        gridPtr->values = (double *) malloc(sizeof(double));
         gridPtr->values[0] = 0;
     } else {
         gridPtr->delta = (maxVal - minVal) / (num - 1);
-        gridPtr->values = (float*) malloc(num * sizeof(float));
+        gridPtr->values = (double *) malloc(num * sizeof(double));
 
         gridPtr->values[0] = minVal;
         gridPtr->values[num - 1] = maxVal;
@@ -72,14 +71,19 @@ char *gridStr(GridPtr gridPtr) {
  * @return the index, [0..N-2] where, or -1 if out of bounds. The value
  * should be bounded by values[index] and values[index+1].
  */
-int getIndex(const GridPtr gridPtr, const float val) {
+int getIndex(const GridPtr gridPtr, const double val) {
 
     int index;
+
+    if (gridPtr->num < 2) { //solenoid phi (q1) grid
+        return 0;
+    }
+
     if ((val < gridPtr->minVal) || (val > gridPtr->maxVal)) {
         index = -1;
     }
     else {
-        float fract = (val - gridPtr->minVal) / gridPtr->delta;
+        double fract = (val - gridPtr->minVal) / gridPtr->delta;
         index = (int) (fract);
     }
     return index;
@@ -92,7 +96,7 @@ int getIndex(const GridPtr gridPtr, const float val) {
  * @return the value of the grid at the given index, or NAN if
  * the index is out of range
  */
-float valueAtIndex(GridPtr gridPtr, int index) {
+double valueAtIndex(GridPtr gridPtr, int index) {
     if ((index < 0) || (index >= gridPtr->num)) {
         return NAN;
     }
@@ -109,20 +113,20 @@ char *gridUnitTest() {
     //generate a bunch of random points, and make sure
     //they always give the correct index.
 
-    float minVal = -300;
-    float maxVal = 300;
+    double minVal = -300;
+    double maxVal = 300;
     unsigned int numPoints = 1201;
 
     GridPtr gridPtr = createGrid("TestGrid", minVal, maxVal, numPoints);
 
     int numTestPoints = 100000;
     srand48(time(0)); //seed random
-    float range = maxVal - minVal;
+    double range = maxVal - minVal;
 
     for (int i = 0; i < numTestPoints; i++) {
 
 
-        float val = (float)(randomDouble(minVal, maxVal));
+        double val = randomDouble(minVal, maxVal);
         int index = getIndex(gridPtr, val);
 
         //result should be true if we pass

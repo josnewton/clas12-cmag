@@ -14,16 +14,11 @@
 #include <time.h>
 #include <math.h>
 
-//coordinate names
-static const char *q1Names[] = { "phi", "x" };
-static const char *q2Names[] = { "rho", "y" };
-static const char *q3Names[] = { "z", "z" };
-
 //used for unit testing only
 MagneticFieldPtr testFieldPtr;
 
 //the field algorithm (global; applies to all fields)
-enum Algorithm _algorithm = INERPOLATION;
+enum Algorithm _algorithm = INTERPOLATION;
 
 //local prototypes
 static FieldMapHeaderPtr readMapHeader(FILE *);
@@ -49,7 +44,7 @@ void setAlgorithm(enum Algorithm algorithm) {
     if (algorithm != _algorithm) {
         _algorithm = algorithm;
         fprintf(stdout, "The algorithm for finding field values has been changed to: %s",
-                (_algorithm == INERPOLATION) ? "INTERPOLATION" : "NEAREST_NEIGHBOR");
+                (_algorithm == INTERPOLATION) ? "INTERPOLATION" : "NEAREST_NEIGHBOR");
     }
 }
 /**
@@ -110,11 +105,11 @@ MagneticFieldPtr initializeSolenoid(const char *solenoidPath) {
  * @return true if the point is within the boundary of the field.
  */
 bool containsCylindrical(MagneticFieldPtr fieldPtr, double rho, double z) {
-    if ((z < fieldPtr->q3GridPtr->minVal) || (z > fieldPtr->q3GridPtr->maxVal)) {
+    if ((z < fieldPtr->zGridPtr->minVal) || (z > fieldPtr->zGridPtr->maxVal)) {
         return false;
     }
 
-    if ((rho < fieldPtr->q2GridPtr->minVal) || (rho > fieldPtr->q2GridPtr->maxVal)) {
+    if ((rho < fieldPtr->rhoGridPtr->minVal) || (rho > fieldPtr->rhoGridPtr->maxVal)) {
         return false;
     }
 
@@ -134,12 +129,12 @@ bool containsCylindrical(MagneticFieldPtr fieldPtr, double rho, double z) {
  */
 bool containsCartesian(MagneticFieldPtr fieldPtr, double x, double y, double z) {
 
-    if ((z < fieldPtr->q3GridPtr->minVal) || (z > fieldPtr->q3GridPtr->maxVal)) {
+    if ((z < fieldPtr->zGridPtr->minVal) || (z > fieldPtr->zGridPtr->maxVal)) {
         return false;
     }
 
     double rho = hypot(x, y);
-    if ((rho < fieldPtr->q2GridPtr->minVal) || (rho > fieldPtr->q2GridPtr->maxVal)) {
+    if ((rho < fieldPtr->rhoGridPtr->minVal) || (rho > fieldPtr->rhoGridPtr->maxVal)) {
         return false;
     }
 
@@ -200,30 +195,35 @@ static MagneticFieldPtr readField(const char *path) {
     }
 
     //create the coordinate grids
-    int cs = headerPtr->gridCS;
-    fieldPtr->q1GridPtr = createGrid(q1Names[cs], headerPtr->q1min,
-            headerPtr->q1max, headerPtr->nq1);
-    fieldPtr->q2GridPtr = createGrid(q2Names[cs], headerPtr->q2min,
-            headerPtr->q2max, headerPtr->nq2);
-    fieldPtr->q3GridPtr = createGrid(q3Names[cs], headerPtr->q3min,
-            headerPtr->q3max, headerPtr->nq3);
+    //CLAS fields always have cylindrical grids
+    //with q1 = phi, q2 = rho and q3 = z
+    fieldPtr->phiGridPtr = createGrid("phi", headerPtr->q1min,
+                                      headerPtr->q1max, headerPtr->nq1);
+    fieldPtr->rhoGridPtr = createGrid("rho", headerPtr->q2min,
+                                      headerPtr->q2max, headerPtr->nq2);
+    fieldPtr->zGridPtr = createGrid("z", headerPtr->q3min,
+                                    headerPtr->q3max, headerPtr->nq3);
 
     //this is useful to cache for indexing purposes
     fieldPtr->N23 = headerPtr->nq2 * headerPtr->nq3;
 
-    //solenoid files have nq1 = 1 and are symmetric (no phi dependence apart from rotation)
+    //solenoid files have nq1 (nPhi) = 1 and are symmetric (no phi dependence apart from rotation)
     //torus symmetric if phi max = 30.
     fieldPtr->symmetric = false;
 
     if (headerPtr->nq1 < 2) {
         fieldPtr->type = SOLENOID;
         fieldPtr->symmetric = true;
+        fieldPtr->cell3DPtr = NULL;
+        createCell2D(fieldPtr);
     }
     else {
         fieldPtr->type = TORUS;
         if ((headerPtr->q1max - headerPtr->q1min) < 31) {
             fieldPtr->symmetric = true;
         }
+        createCell3D(fieldPtr);
+        fieldPtr->cell2DPtr = NULL;
     }
 
 
@@ -232,6 +232,165 @@ static MagneticFieldPtr readField(const char *path) {
 
     printFieldSummary(fieldPtr, stdout);
     return fieldPtr;
+}
+
+/**
+ * Create a 3D cell, which is used by the torus.
+ * Note that nothing is
+ * returned, the field's 2D cell pointer is made to point at the cell,
+ * and the cell is given a reference to the field.
+ * @param fieldPtr a pointer to the solenoid field.
+ */
+void createCell3D(MagneticFieldPtr fieldPtr) {
+    Cell3DPtr cell3DPtr = (Cell3DPtr) malloc(sizeof(Cell3D));
+    cell3DPtr->phiMin = INFINITY;
+    cell3DPtr->phiMax = -INFINITY;
+    cell3DPtr->rhoMin = INFINITY;
+    cell3DPtr->rhoMax = -INFINITY;
+    cell3DPtr->zMin = INFINITY;
+    cell3DPtr->zMax = -INFINITY;
+    cell3DPtr->fieldPtr = fieldPtr;
+    fieldPtr->cell3DPtr = cell3DPtr;
+}
+
+/**
+ * Create a 2D cell, which is used by the solenoid, since the lack
+ * of phi dependence renders the solenoidal field effectively 2D.
+ * Note that nothing is
+ * returned, the field's 2D cell pointer is made to point at the cell,
+ * and the cell is given a reference to the field.
+ * @param fieldPtr a pointer to the solenoid field.
+ */
+void createCell2D(MagneticFieldPtr fieldPtr) {
+    Cell2DPtr cell2DPtr = (Cell2DPtr) malloc(sizeof(Cell2D));
+    cell2DPtr->rhoMin = INFINITY;
+    cell2DPtr->rhoMax = -INFINITY;
+    cell2DPtr->zMin = INFINITY;
+    cell2DPtr->zMax = -INFINITY;
+    cell2DPtr->fieldPtr = fieldPtr;
+    fieldPtr->cell2DPtr = cell2DPtr;
+}
+
+/**
+ * Free the memory associated with a 3D cell.
+ * @param cell3DPtr a pointer to the cell.
+ */
+void freeCell3D(Cell3DPtr cell3DPtr) {
+    free(cell3DPtr);
+}
+
+/**
+ * Free the memory associated with a 2D cell.
+ * @param cell2DPtr a pointer to the cell.
+ */
+void freeCell2D(Cell2DPtr cell2DPtr) {
+    free(cell2DPtr);
+}
+
+/**
+ * Reset the cell based on a new location. If the location is
+ * contained by the cell, then we can use some cached values,
+ * such as the neighbors. If it isn't, we have to recalculate all.
+ * @param cell3DPtr a pointer to the 3D cell.
+ * @param phi the azimuthal angle, in degrees
+ * @param rho the transverse coordinate, in cm.
+ * @param z the z coordinate, in cm.
+ */
+void resetCell3D(Cell3DPtr cell3DPtr, double phi, double rho, double z) {
+    MagneticFieldPtr fieldPtr = cell3DPtr->fieldPtr;
+    GridPtr phiGrid = fieldPtr->phiGridPtr;
+    GridPtr rhoGrid = fieldPtr->rhoGridPtr;
+    GridPtr zGrid = fieldPtr->zGridPtr;
+
+    // get the field indices for the coordinates
+    int nPhi, nRho, nZ;
+    getCoordinateIndices(fieldPtr, phi, rho, z, &nPhi, &nRho, &nZ);
+
+    cell3DPtr->phiIndex = nPhi;
+    cell3DPtr->rhoIndex = nRho;
+    cell3DPtr->zIndex = nZ;
+
+    if (nPhi < 0) {
+        fprintf(stdout, "WARNING cell3D bad index for phi = %-12.5f\n", phi);
+        return;
+    }
+
+    if (nRho < 0) {
+        fprintf(stdout, "WARNING cell3D bad index for rho = %-12.5f\n", rho);
+        return;
+    }
+
+    if (nZ < 0) {
+        fprintf(stdout, "WARNING cell3D bad index for z = %-12.5f\n", z);
+        return;
+    }
+
+    // precompute the boundaries and some factors
+    cell3DPtr->phiMin = phiGrid->values[nPhi];
+    cell3DPtr->phiMax = phiGrid->values[nPhi + 1];
+    cell3DPtr->phiNorm = 1. / phiGrid->delta;
+
+    cell3DPtr->rhoMin = rhoGrid->values[nRho];
+    cell3DPtr->rhoMax = rhoGrid->values[nRho + 1];
+    cell3DPtr->rhoNorm = 1. / rhoGrid->delta;
+
+    cell3DPtr->zMin = zGrid->values[nZ];
+    cell3DPtr->zMax = zGrid->values[nZ + 1];
+    cell3DPtr->zNorm = 1. / zGrid->delta;
+
+    int i000 = getCompositeIndex(fieldPtr, nPhi, nRho, nZ);
+    int i001 = i000 + 1; // nPhi nRho nZ+1
+
+    int i010 = getCompositeIndex(fieldPtr, nPhi, nRho + 1, nZ); // nPhi nRho+1 nZ
+    int i011 = i010 + 1; // nPhi nRho+1 nZ+1
+
+    int i100 = getCompositeIndex(fieldPtr, nPhi + 1, nRho, nZ); // nPhi+1 nRho nZ
+    int i101 = i100 + 1; // nPhi+1 nRho nZ+1
+
+    int i110 = getCompositeIndex(fieldPtr, nPhi + 1, nRho + 1, nZ); // nPhi+1 nRho+1 nZ
+    int i111 = i110 + 1; // nPhi+1 nRho+1 nZ+1
+
+    // field at 8 corners
+/*
+    b[0][0][0].x = _probe.getB1(i000);
+    b[0][0][1].x = _probe.getB1(i001);
+    b[0][1][0].x = _probe.getB1(i010);
+    b[0][1][1].x = _probe.getB1(i011);
+    b[1][0][0].x = _probe.getB1(i100);
+    b[1][0][1].x = _probe.getB1(i101);
+    b[1][1][0].x = _probe.getB1(i110);
+    b[1][1][1].x = _probe.getB1(i111);
+
+    b[0][0][0].y = _probe.getB2(i000);
+    b[0][0][1].y = _probe.getB2(i001);
+    b[0][1][0].y = _probe.getB2(i010);
+    b[0][1][1].y = _probe.getB2(i011);
+    b[1][0][0].y = _probe.getB2(i100);
+    b[1][0][1].y = _probe.getB2(i101);
+    b[1][1][0].y = _probe.getB2(i110);
+    b[1][1][1].y = _probe.getB2(i111);
+
+    b[0][0][0].z = _probe.getB3(i000);
+    b[0][0][1].z = _probe.getB3(i001);
+    b[0][1][0].z = _probe.getB3(i010);
+    b[0][1][1].z = _probe.getB3(i011);
+    b[1][0][0].z = _probe.getB3(i100);
+    b[1][0][1].z = _probe.getB3(i101);
+    b[1][1][0].z = _probe.getB3(i110);
+    b[1][1][1].z = _probe.getB3(i111);
+*/
+}
+
+/**
+ * Reset the cell based on a new location. If the location is
+ * contained by the cell, then we can use some cached values,
+ * such as the neighbors. If it isn't, we have to recalculate all.
+ * @param cell2DPtr a pointer to the 2D cell.
+ * @param rho the transverse coordinate, in cm.
+ * @param z the z coordinate, in cm.
+ */
+void resetCell2D(Cell2DPtr cell2DPtr, double rho, double z) {
+
 }
 
 /**
@@ -246,9 +405,9 @@ static MagneticFieldPtr readField(const char *path) {
  * @param fieldPtr a pointer to the field map.
  */
 void getFieldValue(FieldValuePtr fieldValuePtr,
-                   float x,
-                   float y,
-                   float z,
+                   double x,
+                   double y,
+                   double z,
                    MagneticFieldPtr fieldPtr) {
 
     //see if we are contained
@@ -284,9 +443,9 @@ void getFieldValue(FieldValuePtr fieldValuePtr,
  * @param ... the continuation of the the list of field pointers.
  */
 void getCompositeFieldValue(FieldValuePtr fieldValuePtr,
-        float x,
-        float y,
-        float z,
+                            double x,
+                            double y,
+                            double z,
         MagneticFieldPtr fieldPtr, ...) {
     va_list valist;
 
@@ -416,38 +575,56 @@ static void computeFieldMetrics(MagneticFieldPtr fieldPtr) {
  * @return the composite index into the 1D data array.
  */
 int getCompositeIndex(MagneticFieldPtr fieldPtr, int n1, int n2, int n3) {
-    return n1 * fieldPtr->N23 + n2 * fieldPtr->q3GridPtr->num + n3;
+    return n1 * fieldPtr->N23 + n2 * fieldPtr->zGridPtr->num + n3;
 }
 
 /**
- * This converts the "composite" index of the 1D data array holding
+ * This inverts the "composite" index of the 1D data array holding
  * the field data into an index for each coordinate. This can
  * be used, for example, to find the grid coordinate values and field components.
  * @param fieldPtr the pointer to the field map
  * @param index the composite index into the 1D data array. Upon return,
  * coordinate indices of -1 indicate error.
- * @param q1Index will hold the index for the first coordinate.
- * @param q2Index will hold the index for the second coordinate.
- * @param q3Index will hold the index for the third coordinate.
+ * @param phiIndex will hold the index for the first coordinate.
+ * @param rhoIndex will hold the index for the second coordinate.
+ * @param zIndex will hold the index for the third coordinate.
  */
-void getCoordinateIndices(MagneticFieldPtr fieldPtr, int index, int *q1Index, int *q2Index, int *q3Index) {
+void invertCompositeIndex(MagneticFieldPtr fieldPtr, int index,
+                          int *phiIndex, int *rhoIndex, int *zIndex) {
     if ((index < 0) || (index >= fieldPtr->numValues)) {
-        *q1Index = -1;
-        *q2Index = -1;
-        *q3Index = -1;
+        *phiIndex = -1;
+        *rhoIndex = -1;
+        *zIndex = -1;
     }
     else {
-        int N3 = fieldPtr->q3GridPtr->num;
-        int n3 = index % N3;
-        index = (index - n3) / N3;
+        int NZ = fieldPtr->zGridPtr->num;
+        int n3 = index % NZ;
+        index = (index - n3) / NZ;
 
-        int N2 = fieldPtr->q2GridPtr->num;
-        int n2 = index % N2;
-        int n1 = (index - n2) / N2;
-        *q1Index  = n1;
-        *q2Index  = n2;
-        *q3Index  = n3;
+        int NRho = fieldPtr->rhoGridPtr->num;
+        int n2 = index % NRho;
+        int n1 = (index - n2) / NRho;
+        *phiIndex  = n1;
+        *rhoIndex  = n2;
+        *zIndex  = n3;
     }
+}
+
+/**
+ * Get the coordinate indices from coordinates.
+ * @param fieldPtr the field ptr.
+ * @param phi the value of the phi coordinate.
+ * @param rho the value of the rho coordinate.
+ * @param z the value of the z coordinate.
+ * @param nPhi upon return, the phi index.
+ * @param nRho upon return, the rho index.
+ * @param nZ upon return, the z index.
+ */
+void getCoordinateIndices(MagneticFieldPtr fieldPtr, double phi, double rho, double z,
+                          int *nPhi, int *nRho, int *nZ) {
+    *nPhi = getIndex(fieldPtr->phiGridPtr, phi);
+    *nRho = getIndex(fieldPtr->zGridPtr, rho);
+    *nZ = getIndex(fieldPtr->zGridPtr, z);
 }
 
  /**
@@ -507,8 +684,8 @@ static void swap32(char *ptr, int num32) {
  */
 char *containsUnitTest() {
 
-    int count = 10000;
-    int q1Index, q2Index, q3Index;
+    int count = 1000000;
+    int phiIndex, rhoIndex, zIndex;
     bool result;
 
     double x, y, z;
@@ -517,8 +694,8 @@ char *containsUnitTest() {
     for (int i = 0; i < count; i++) {
 
         double phi = randomDouble(0, 360);
-        double rho = randomDouble(testFieldPtr->q2GridPtr->minVal, testFieldPtr->q2GridPtr->maxVal);
-        double z = randomDouble(testFieldPtr->q3GridPtr->minVal, testFieldPtr->q3GridPtr->maxVal);
+        double rho = randomDouble(testFieldPtr->rhoGridPtr->minVal, testFieldPtr->rhoGridPtr->maxVal);
+        double z = randomDouble(testFieldPtr->zGridPtr->minVal, testFieldPtr->zGridPtr->maxVal);
 
         cylindricalToCartesian(&x, &y, phi, rho);
         result = containsCartesian(testFieldPtr, x, y, z);
@@ -532,21 +709,21 @@ char *containsUnitTest() {
     for (int i = 0; i < count; i++) {
 
         double phi = randomDouble(0, 360);
-        double rho = randomDouble(testFieldPtr->q2GridPtr->maxVal, 2*testFieldPtr->q2GridPtr->maxVal);
-        double z = randomDouble(testFieldPtr->q3GridPtr->minVal, testFieldPtr->q3GridPtr->maxVal);
+        double rho = randomDouble(testFieldPtr->rhoGridPtr->maxVal, 2 * testFieldPtr->rhoGridPtr->maxVal);
+        double z = randomDouble(testFieldPtr->zGridPtr->minVal, testFieldPtr->zGridPtr->maxVal);
 
         cylindricalToCartesian(&x, &y, phi, rho);
         result = !containsCartesian(testFieldPtr, x, y, z);
         mu_assert("The (outside) boundary contains test failed (A).", result);
 
-        rho = randomDouble(testFieldPtr->q2GridPtr->minVal, testFieldPtr->q2GridPtr->maxVal);
-        z = randomDouble(-1000, testFieldPtr->q3GridPtr->minVal-0.01);
+        rho = randomDouble(testFieldPtr->rhoGridPtr->minVal, testFieldPtr->rhoGridPtr->maxVal);
+        z = randomDouble(-1000, testFieldPtr->zGridPtr->minVal - 0.01);
 
         result = !containsCartesian(testFieldPtr, x, y, z);
         mu_assert("The (outside) boundary contains test failed (B).", result);
 
-        rho = randomDouble(testFieldPtr->q2GridPtr->minVal, testFieldPtr->q2GridPtr->maxVal);
-        z = randomDouble(testFieldPtr->q3GridPtr->maxVal+0.01, 2000);
+        rho = randomDouble(testFieldPtr->rhoGridPtr->minVal, testFieldPtr->rhoGridPtr->maxVal);
+        z = randomDouble(testFieldPtr->zGridPtr->maxVal + 0.01, 2000);
 
         result = !containsCartesian(testFieldPtr, x, y, z);
         mu_assert("The (outside) boundary contains test failed (B).", result);
@@ -563,17 +740,17 @@ char *containsUnitTest() {
  */
 char *compositeIndexUnitTest() {
 
-    int count = 10000;
-    int q1Index, q2Index, q3Index;
+    int count = 1000000;
+    int phiIndex, rhoIndex, zIndex;
     bool result;
 
     for (int i = 0; i < count; i++) {
         int compositeIndex = randomInt(0, testFieldPtr->numValues-1);
 
         //break it apart an put it back together.
-        getCoordinateIndices(testFieldPtr, compositeIndex, &q1Index, &q2Index, &q3Index);
+        invertCompositeIndex(testFieldPtr, compositeIndex, &phiIndex, &rhoIndex, &zIndex);
 
-        int testIndex = getCompositeIndex(testFieldPtr, q1Index, q2Index, q3Index);
+        int testIndex = getCompositeIndex(testFieldPtr, phiIndex, rhoIndex, zIndex);
         result = (testIndex == compositeIndex);
 
         mu_assert("Reconstructed index did not match composite index.", result);
