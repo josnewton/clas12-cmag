@@ -359,3 +359,14 @@ static void resetCell(Cell3D *cell) {
     cell->zMax = -INFINITY;
     cell->zMin = INFINITY;
 }
+
+/**
+ * Get the hex color string from color components
+ * @param colorStr must be at last 8 characters
+ * @param r the red component [0..255]
+ * @param g the green component [0..255]
+ * @param b the blue component [0..255]
+ */
+void colorToHex(char * colorStr, int r, int g, int b) {
+    sprintf(colorStr, "#%02x%02x%02x", r, g, b);
+}

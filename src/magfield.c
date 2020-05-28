@@ -8,6 +8,7 @@
 #include "magfield.h"
 #include "magfieldutil.h"
 #include "munittest.h"
+#include "svg.h"
 
 #include <stdlib.h>
 #include <stdarg.h>
@@ -351,34 +352,43 @@ void resetCell3D(Cell3DPtr cell3DPtr, double phi, double rho, double z) {
     int i111 = i110 + 1; // nPhi+1 nRho+1 nZ+1
 
     // field at 8 corners
-/*
-    b[0][0][0].x = _probe.getB1(i000);
-    b[0][0][1].x = _probe.getB1(i001);
-    b[0][1][0].x = _probe.getB1(i010);
-    b[0][1][1].x = _probe.getB1(i011);
-    b[1][0][0].x = _probe.getB1(i100);
-    b[1][0][1].x = _probe.getB1(i101);
-    b[1][1][0].x = _probe.getB1(i110);
-    b[1][1][1].x = _probe.getB1(i111);
 
-    b[0][0][0].y = _probe.getB2(i000);
-    b[0][0][1].y = _probe.getB2(i001);
-    b[0][1][0].y = _probe.getB2(i010);
-    b[0][1][1].y = _probe.getB2(i011);
-    b[1][0][0].y = _probe.getB2(i100);
-    b[1][0][1].y = _probe.getB2(i101);
-    b[1][1][0].y = _probe.getB2(i110);
-    b[1][1][1].y = _probe.getB2(i111);
+    FieldValuePtr fp_000 = getFieldAtIndex(fieldPtr, i000);
+    FieldValuePtr fp_001 = getFieldAtIndex(fieldPtr, i001);
+    FieldValuePtr fp_010 = getFieldAtIndex(fieldPtr, i010);
+    FieldValuePtr fp_011 = getFieldAtIndex(fieldPtr, i011);
+    FieldValuePtr fp_100 = getFieldAtIndex(fieldPtr, i100);
+    FieldValuePtr fp_101 = getFieldAtIndex(fieldPtr, i101);
+    FieldValuePtr fp_110 = getFieldAtIndex(fieldPtr, i110);
+    FieldValuePtr fp_111 = getFieldAtIndex(fieldPtr, i111);
 
-    b[0][0][0].z = _probe.getB3(i000);
-    b[0][0][1].z = _probe.getB3(i001);
-    b[0][1][0].z = _probe.getB3(i010);
-    b[0][1][1].z = _probe.getB3(i011);
-    b[1][0][0].z = _probe.getB3(i100);
-    b[1][0][1].z = _probe.getB3(i101);
-    b[1][1][0].z = _probe.getB3(i110);
-    b[1][1][1].z = _probe.getB3(i111);
-*/
+    cell3DPtr->b[0][0][0].b1 = fp_000->b1;
+    cell3DPtr->b[0][0][1].b1 = fp_001->b1;
+    cell3DPtr->b[0][1][0].b1 = fp_010->b1;
+    cell3DPtr->b[0][1][1].b1 = fp_011->b1;
+    cell3DPtr->b[1][0][0].b1 = fp_100->b1;
+    cell3DPtr->b[1][0][1].b1 = fp_101->b1;
+    cell3DPtr->b[1][1][0].b1 = fp_110->b1;
+    cell3DPtr->b[1][1][1].b1 = fp_111->b1;
+
+    cell3DPtr->b[0][0][0].b2 = fp_000->b2;
+    cell3DPtr->b[0][0][1].b2 = fp_001->b2;
+    cell3DPtr->b[0][1][0].b2 = fp_010->b2;
+    cell3DPtr->b[0][1][1].b2 = fp_011->b2;
+    cell3DPtr->b[1][0][0].b2 = fp_100->b2;
+    cell3DPtr->b[1][0][1].b2 = fp_101->b2;
+    cell3DPtr->b[1][1][0].b2 = fp_110->b2;
+    cell3DPtr->b[1][1][1].b2 = fp_111->b2;
+
+    cell3DPtr->b[0][0][0].b3 = fp_000->b3;
+    cell3DPtr->b[0][0][1].b3 = fp_001->b3;
+    cell3DPtr->b[0][1][0].b3 = fp_010->b3;
+    cell3DPtr->b[0][1][1].b3 = fp_011->b3;
+    cell3DPtr->b[1][0][0].b3 = fp_100->b3;
+    cell3DPtr->b[1][0][1].b3 = fp_101->b3;
+    cell3DPtr->b[1][1][0].b3 = fp_110->b3;
+    cell3DPtr->b[1][1][1].b3 = fp_111->b3;
+
 }
 
 /**
@@ -390,6 +400,54 @@ void resetCell3D(Cell3DPtr cell3DPtr, double phi, double rho, double z) {
  * @param z the z coordinate, in cm.
  */
 void resetCell2D(Cell2DPtr cell2DPtr, double rho, double z) {
+    MagneticFieldPtr fieldPtr = cell2DPtr->fieldPtr;
+
+    GridPtr rhoGrid = fieldPtr->rhoGridPtr;
+    GridPtr zGrid = fieldPtr->zGridPtr;
+
+    // get the field indices for the coordinates
+    int dummy, nRho, nZ;
+    getCoordinateIndices(fieldPtr, 0.0, rho, z, &dummy, &nRho, &nZ);
+
+    cell2DPtr->rhoIndex = nRho;
+    cell2DPtr->zIndex = nZ;
+
+    if (nRho < 0) {
+        fprintf(stdout, "WARNING cell2D bad index for rho = %-12.5f\n", rho);
+        return;
+    }
+
+    if (nZ < 0) {
+        fprintf(stdout, "WARNING cell2D bad index for z = %-12.5f\n", z);
+        return;
+    }
+
+    // precompute the boundaries and some factors
+
+    cell2DPtr->rhoMin = rhoGrid->values[nRho];
+    cell2DPtr->rhoMax = rhoGrid->values[nRho + 1];
+    cell2DPtr->rhoNorm = 1. / rhoGrid->delta;
+
+    cell2DPtr->zMin = zGrid->values[nZ];
+    cell2DPtr->zMax = zGrid->values[nZ + 1];
+    cell2DPtr->zNorm = 1. / zGrid->delta;
+
+    int i00 = getCompositeIndex(fieldPtr, 0, nRho, nZ);
+    int i01 = i00 + 1;
+
+    int i10 = getCompositeIndex(fieldPtr, 0, nRho + 1, nZ);
+    int i11 = i10 + 1;
+
+    // field at 4 corners
+    FieldValuePtr fp_00 = getFieldAtIndex(fieldPtr, i00);
+    FieldValuePtr fp_01 = getFieldAtIndex(fieldPtr, i01);
+    FieldValuePtr fp_10 = getFieldAtIndex(fieldPtr, i10);
+    FieldValuePtr fp_11 = getFieldAtIndex(fieldPtr, i11);
+
+    cell2DPtr->b[0][0].b2 = fp_00->b2;
+    cell2DPtr->b[0][1].b2 = fp_01->b2;
+    cell2DPtr->b[1][0].b3 = fp_10->b3;
+    cell2DPtr->b[1][1].b3 = fp_11->b3;
 
 }
 
@@ -771,6 +829,72 @@ FieldValuePtr getFieldAtIndex(MagneticFieldPtr fieldPtr, int compositeIndex) {
         return NULL;
     }
     return fieldPtr->fieldValues + compositeIndex;
+}
+
+/**
+ * Create an SVG image of the fields. Not much flexibility here. Will
+ * make the canonical Bmag plot sector 1 midplane, so
+ * x (vertical): [0, 360], y = 0, z (horizontal) [-100, 500]. So the
+ * svg image is 600 x 360. The pixel size is 2x2.
+ * @param path the path to the svg file.
+ * @param fieldPtr the first (and perhaps the only) of
+ * @param ... the continuation of the the list of field pointers.
+ */
+void createSVGImage(char * path, MagneticFieldPtr torus, MagneticFieldPtr solenoid) {
+
+    int zmin = -100;
+    int zmax = 500;
+    int xmin = 0;
+    int xmax = 360;
+    int y = 0;
+    int del = 2;
+
+
+    int width = zmax - zmin;
+    int height = xmax - xmin;
+
+    svg* psvg;
+    psvg = svg_create(width, height);
+
+    svg_fill(psvg, "white");
+
+    char *cstr = (char *) malloc(10);
+
+    fprintf(stdout, "\nStarting svg image creation for: [%s]", path);
+
+    int x = xmin;
+    while (x <= xmax) {
+        if ((x % 50) == 0) {
+            fprintf(stdout, ".");
+        }
+        int z = zmin;
+        while (z <= zmax) {
+            z += del;
+
+    //        fprintf(stdout, "(%4d, %4d)\n", z, x);
+
+            int zPic = z - zmin; //starts at 0
+
+            //random color
+            int r = randomInt(0, 255);
+            int g = randomInt(0, 255);
+            int b = randomInt(10, 255);
+
+            colorToHex(cstr, r, g, b);
+            svg_rectangle(psvg, del, del, zPic, x, cstr, "none", 0, 0, 0);
+
+
+        }
+        x += del;
+    }
+    free(cstr);
+
+    svg_rectangle(psvg, width, height, 0, 0, "none", "black", 1, 0, 0);
+
+    svg_finalize(psvg);
+    svg_save(psvg, path);
+    svg_free(psvg);
+    fprintf(stdout, "done.\n");
 }
 
 

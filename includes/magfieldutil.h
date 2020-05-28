@@ -35,5 +35,6 @@ inline double toRadians(double);
 extern void cartesianToCylindrical(const double, const double, double *, double *);
 extern void cylindricalToCartesian(double *, double *, const double, const double);
 extern char *conversionUnitTest();
+extern void colorToHex(char *, int, int, int);
 
 #endif /* magfieldutil_h */

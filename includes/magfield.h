@@ -189,4 +189,6 @@ extern void resetCell2D(Cell2DPtr, double, double);
 extern void getCoordinateIndices(MagneticFieldPtr, double, double, double,
                           int *, int *, int *);
 
+extern void createSVGImage(char *, MagneticFieldPtr torus, MagneticFieldPtr solenoid);
+
 #endif /* magfield_h */

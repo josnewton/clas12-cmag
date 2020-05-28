@@ -94,9 +94,6 @@ int main(int argc, const char * argv[]) {
     testFieldPtr = torus; //used for unit test
     char *testResult = allTests();
 
-    //make sure the frees don't blow up
-    freeFieldMap(torus);
-    freeFieldMap(solenoid);
 
   //  setAlgorithm(NEAREST_NEIGHBOR);
 
@@ -113,7 +110,17 @@ int main(int argc, const char * argv[]) {
         fprintf(stdout, "\nProgram ran successfully.\n");
     }
 
+    //create the picture
+    char *home = getenv("HOME");
+    char *picPath = (char*) malloc(255);
+    sprintf(picPath, "%s/%s", home, "magfield.svg");
+    createSVGImage(picPath, torus, solenoid);
   //  svgTest();
+
+    //make sure the frees don't blow up
+    freeFieldMap(torus);
+    freeFieldMap(solenoid);
+
     return (testResult == NULL) ? 0 : 1;
 }
 
