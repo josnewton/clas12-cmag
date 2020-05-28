@@ -840,60 +840,90 @@ FieldValuePtr getFieldAtIndex(MagneticFieldPtr fieldPtr, int compositeIndex) {
  * @param fieldPtr the first (and perhaps the only) of
  * @param ... the continuation of the the list of field pointers.
  */
-void createSVGImage(char * path, MagneticFieldPtr torus, MagneticFieldPtr solenoid) {
+void createSVGImage(char *path, MagneticFieldPtr torus, MagneticFieldPtr solenoid) {
 
     int zmin = -100;
     int zmax = 500;
     int xmin = 0;
     int xmax = 360;
-    int y = 0;
-    int del = 2;
 
+    int del = 20;
 
-    int width = zmax - zmin;
-    int height = xmax - xmin;
+    int marginLeft =  50;
+    int marginRight =  50;
+    int marginTop =  50;
+    int marginBottom =  50;
+
+    int imageWidth = zmax - zmin;
+    int imageHeight = xmax - xmin;
+    int width = imageWidth + marginLeft + marginRight;
+    int height = imageHeight + marginTop + marginBottom;
 
     svg* psvg;
-    psvg = svg_create(width, height);
+    psvg = svgStart(path, width, height);
 
-    svg_fill(psvg, "white");
+    svgFill(psvg, "white");
 
     char *cstr = (char *) malloc(10);
 
     fprintf(stdout, "\nStarting svg image creation for: [%s]", path);
 
     int x = xmin;
-    while (x <= xmax) {
+    while (x < xmax) {
         if ((x % 50) == 0) {
             fprintf(stdout, ".");
         }
+        int xPic = x - xmin + marginTop; //x is vertical
         int z = zmin;
-        while (z <= zmax) {
-            z += del;
+        while (z < zmax) {
 
-    //        fprintf(stdout, "(%4d, %4d)\n", z, x);
-
-            int zPic = z - zmin; //starts at 0
+            int zPic = z - zmin + marginLeft;
 
             //random color
             int r = randomInt(0, 255);
             int g = randomInt(0, 255);
-            int b = randomInt(10, 255);
+            int b = randomInt(0, 255);
 
-            colorToHex(cstr, r, g, b);
-            svg_rectangle(psvg, del, del, zPic, x, cstr, "none", 0, 0, 0);
+            colorToHex(cstr, r, 125, 255);
+            svgRectangle(psvg, del, del, zPic, xPic, cstr, "none", 0, 0, 0);
 
-
+            z += del;
         }
         x += del;
     }
     free(cstr);
 
-    svg_rectangle(psvg, width, height, 0, 0, "none", "black", 1, 0, 0);
+    svgRectangle(psvg, imageWidth, imageHeight, marginLeft, marginTop, "none", "black", 1, 0, 0);
 
-    svg_finalize(psvg);
-    svg_save(psvg, path);
-    svg_free(psvg);
+    char *label = (char *) malloc(40);
+
+
+    int z = marginLeft - 14;
+    x = xmin;
+    while (x <= xmax) {
+        int xPic = x - xmin + marginTop;
+
+        sprintf(label, "%d", xmax - x);
+        svgRotatedText(psvg, z, xPic+8, "times", 12, "black", "none", -90, label);
+        svgLine(psvg, "#cccccc", 1, marginLeft, xPic, marginLeft+imageWidth, xPic);
+        x += 60;
+    }
+
+
+    z = zmin;
+    x = marginTop + imageHeight + 20;
+    while (z <= zmax) {
+
+        int zPic = z - zmin + marginLeft;
+        sprintf(label, "%d", z);
+        svgText(psvg, zPic-12, x, "times", 12, "black", "none", label);
+        svgLine(psvg, "#cccccc", 1, zPic, marginTop, zPic, marginTop+imageHeight);
+
+        z += 100;
+    }
+    free(label);
+
+    svgEnd(psvg);
     fprintf(stdout, "done.\n");
 }
 
