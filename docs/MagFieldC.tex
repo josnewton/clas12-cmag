@@ -95,17 +95,16 @@ Assuming the build worked (and why shouldn't it?) the first thing you should do 
 But wait just a moment. Running  \texttt{cMagTest} is the \textit{first} thing you should do, which every programmer knows is the second thing you should do. The \textit{zeroth} thing you should do, obviously first, i.e., before the first thing, is to make sure you have bonafide CLAS12 magnetic fields.  As mentioned earlier, they can be downloaded from here:\\
 
  \url{https://clasweb.jlab.org/clas12offline/magfield/}.\\
-\vspace{1mm}\\
-Of the magnetic fields you will find there, the two that \texttt{cMagTest}  requires to run its tests are:\\
-
+\vspace{0.25mm}\\
+Of the magnetic fields you will find there, the three that \texttt{cMagTest}  requires to run its units tests are:\\
 \begin{verbatim}
     Symm_solenoid_r601_phi1_z1201_13June2018.dat
-
     Symm_torus_r2501_phi16_z251_24Apr2018.dat
+    Full_torus_r251_phi181_z251_03March2020.dat
 \end{verbatim} 
 \vspace{1.5mm}
 
-While the field map data directory is not hardwired into \texttt{cMagTest} (more about that anon) these two fields it tests itself upon are. 
+While the field map data directory is not hardwired into \texttt{cMagTest} (more about that anon) these three fields it tests itself upon are. They are, at the time of this writing, the most recent maps of the solenoid, the torus with assumed 12-fold symmetry, and the full torus with no assumed symmetry.
 
 Let's suppose your username is \texttt{yomama} and you have downloaded the magnetic fields (including but not limited to the two maps mentioned above) to the directory \texttt{/Users/yomama/data/fieldmaps}. You pass that information to \texttt{cMagTest} as the one and only command line argument it processes. That is, you type:
 
