@@ -13,7 +13,14 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#define IS_INDEXABLE(arg) (sizeof(arg[0]))
+#define IS_ARRAY(arg) (IS_INDEXABLE(arg) && (((void *) &arg) == ((void *) arg)))
+#define ARRAYSIZE(arr) (IS_ARRAY(arr) ? (sizeof(arr) / sizeof(arr[0])) : 0)
+
+
 #define FMDEBUG 1
+
+#define ROOT3OVER2 0.8660254037844386468
 
 // debug print
 #define debugPrint(fmt, ...) \
@@ -106,7 +113,7 @@ typedef struct cell3d {
     double g[3];
     double a[8];
 
-    FieldValue b[2][2][2]; //field at 4 corners of cell
+    FieldValuePtr b[2][2][2]; //field at 4 corners of cell
 } Cell3D;
 
 //2d cell is used by solenoid
@@ -127,7 +134,7 @@ typedef struct cell2d {
     double rhoNorm; //cached value to speed up evaluation
     double zNorm; //cached value to speed up evaluation
 
-    FieldValue b[2][2]; //field at 4 corners of cell
+    FieldValuePtr b[2][2]; //field at 4 corners of cell
 
 } Cell2D;
 
@@ -166,23 +173,20 @@ typedef struct magneticfield {
 } MagneticField;
 
 // external function prototypes
-extern MagneticFieldPtr initializeTorus(const char *);
-extern MagneticFieldPtr initializeSolenoid(const char *);
+
 extern int getCompositeIndex(MagneticFieldPtr, int, int, int);
 extern void invertCompositeIndex(MagneticFieldPtr fieldPtr, int index, int *phiIndex, int *rhoIndex, int *zIndex);
 extern char *compositeIndexUnitTest();
 extern char *containsUnitTest();
+extern char *nearestNeighborUnitTest();
+
 extern FieldValuePtr getFieldAtIndex(MagneticFieldPtr, int );
 extern void getFieldValue(FieldValuePtr, double, double, double, MagneticFieldPtr);
-extern void getCompositeFieldValue(FieldValuePtr, double, double, double, MagneticFieldPtr, ...);
+extern void getCompositeFieldValue(FieldValuePtr, double, double, double, MagneticFieldPtr, MagneticFieldPtr);
 extern void setAlgorithm(enum Algorithm);
 bool containsCartesian(MagneticFieldPtr, double, double, double);
 bool containsCylindrical(MagneticFieldPtr, double, double);
 
-extern void createCell3D(MagneticFieldPtr);
-extern void createCell2D(MagneticFieldPtr);
-extern void freeCell3D(Cell3DPtr);
-extern void freeCell2D(Cell2DPtr);
 extern void resetCell3D(Cell3DPtr, double, double, double);
 extern void resetCell2D(Cell2DPtr, double, double);
 

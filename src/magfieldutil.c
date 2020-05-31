@@ -1,11 +1,12 @@
 //
 //  magfieldutil.c
-//  cMag
+//  Utility functions for cMag.
 //
 //  Created by David Heddle on 5/22/20.
 //
 
 #include "magfield.h"
+#include "magfieldio.h"
 #include "magfieldutil.h"
 #include "munittest.h"
 #include <stdlib.h>
@@ -124,6 +125,59 @@ double fieldMagnitude(FieldValue *fvPtr) {
     double b3 = fvPtr->b3;
     return sqrt(b1 * b1 + b2 * b2 + b3 * b3);
 }
+
+
+/**
+ * Must deal with the fact that for a symmetric torus
+ * we only have the field between 0 and 30 degrees.
+ * @param absolutePhi the absolut value of phi in degrees.
+ * @return a phi relative to the midplabe, [-30, 30]
+ */
+double relativePhi(double absolutePhi) {
+    if (absolutePhi < 0.0) {
+        absolutePhi += 360.0;
+    }
+
+    // make relative phi between 0 -30 and 30
+    double relativePhi = absolutePhi;
+    while (fabs(relativePhi) > 30.0) {
+        relativePhi -= 60.0;
+    }
+    return relativePhi;
+}
+
+/**
+ * Obtain the CLAS12 sector from the phi value
+ * @param phi the azimuthal angle in degrees
+ * @return the sector [1..6].
+ */
+int getSector(double phi) {
+
+    while (phi < 0) {
+        phi += 360.0;
+    }
+    while (phi > 360.0) {
+        phi -= 360.0;
+    }
+
+    if ((phi > 30.0) && (phi <= 90.0)) {
+        return 2;
+    }
+    if ((phi > 90.0) && (phi <= 150.0)) {
+        return 3;
+    }
+    if ((phi > 150.0) && (phi <= 210.0)) {
+        return 4;
+    }
+    if ((phi > 210.0) && (phi <= 270.0)) {
+        return 5;
+    }
+    if ((phi > 270.0) && (phi <= 330.0)) {
+        return 6;
+    }
+    return 1;
+}
+
 /**
  * Print a summary of the map for diagnostics and debugging.
  * @param fieldPtr the pointer to the map.
@@ -276,6 +330,15 @@ int randomInt(int minVal, int maxVal) {
 }
 
 /**
+ * Sign function
+ * @param x the value to check
+ * @return -1, 0 or 1
+ */
+int sign(double x) {
+    return (x > 0) - (x < 0);
+}
+
+/**
  * Obtain a random double in the range[minVal, maxVal]. Used for testing.
  * @param minVal the minimum value
  * @param maxVal the maximum Value;
@@ -361,12 +424,140 @@ static void resetCell(Cell3D *cell) {
 }
 
 /**
- * Get the hex color string from color components
- * @param colorStr must be at last 8 characters
- * @param r the red component [0..255]
- * @param g the green component [0..255]
- * @param b the blue component [0..255]
+ * A binary search through a sorted array.
+ * @param array an array sorted (descending).
+ * @param lower pass 0 to this, it is here for recursion
+ * @param upper pass the length of the array - 1.
+ * @param x pass the value to search for.
+ * @return -1 if the value is out of range. othewise return
+ * index [0..length-2] such that array[index] < value < array[index+1];
  */
-void colorToHex(char * colorStr, int r, int g, int b) {
-    sprintf(colorStr, "#%02x%02x%02x", r, g, b);
+int descBinarySearch(double *array, int lower, int upper, double x) {
+    if (upper >= lower) {
+        int mid = (upper + lower) / 2;
+
+        // If the element is present at the middle
+        // itself
+        if ((array[mid] >= x) && (array[mid+1] < x)) {
+            return mid;
+        }
+
+        // If element is smaller than mid, then
+        // it can only be present in left subarray
+        if (array[mid] < x) {
+            return descBinarySearch(array, lower, mid - 1, x);
+        }
+
+        // Else the element can only be present
+        // in right subarray
+        return descBinarySearch(array, mid + 1, upper, x);
+    }
+
+    // We reach here when element is not
+    // present in array
+    return -1;
+}
+
+/**
+ * A binary search through a sorted array.
+ * @param array an array sorted (ascending).
+ * @param lower pass 0 to this, it is here for recursion
+ * @param upper pass the length of the array - 1.
+ * @param x pass the value to search for.
+ * @return -1 if the value is out of range. othewise return
+ * index [0..length-2] such that array[index] < value < array[index+1];
+ */
+int binarySearch(double *array, int lower, int upper, double x) {
+    if (upper >= lower) {
+        int mid = (upper + lower) / 2;
+
+        // If the element is present at the middle
+        // itself
+        if ((array[mid] <= x) && (array[mid+1] > x)) {
+            return mid;
+        }
+
+        // If element is smaller than mid, then
+        // it can only be present in left subarray
+        if (array[mid] > x) {
+            return binarySearch(array, lower, mid - 1, x);
+        }
+
+        // Else the element can only be present
+        // in right subarray
+        return binarySearch(array, mid + 1, upper, x);
+    }
+
+    // We reach here when element is not
+    // present in array
+    return -1;
+}
+
+/**
+ * A comparator for qsort
+ * @param a one value
+ * @param b another value
+ * @return
+ */
+int cmpfunc (const void *a, const void *b) {
+
+    double aval = *(double*)a;
+    double bval = *(double*)b;
+
+    if (aval < bval) {
+        return -1;
+    }
+    if (aval > bval) {
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * Use built in quick sort to sort a double array in ascending order
+ * @param array the array to sort
+ * @param length the length of the array
+ */
+void sortArray(double *array, int length) {
+    qsort(array, length, sizeof(double), cmpfunc);
+}
+/**
+ * A unit test for the binary search
+ * @return an error message if the test fails, or NULL if it passes.
+ */
+char *binarySearchUnitTest() {
+    double *array;
+    int length = 100;
+    double minVal = -100;
+    double maxVal = 300;
+
+    array = (double *) malloc(length * sizeof(double));
+
+    for (int i = 0; i < length; i++) {
+        array[i] = randomDouble(minVal, maxVal);
+    }
+
+    sortArray(array, length);
+
+    int num = 100000;
+    double del10 = (maxVal - minVal)/10;
+    for (int i = 0; i < num; i++) {
+        double val = randomDouble(minVal-del10, maxVal+del10);
+        int index = binarySearch(array, 0, length-1, val);
+
+        if (index < 0) {
+            bool result = ((val < array[0]) || (val > array[length-1]));
+            mu_assert("binarySearch incorrectly reported bad index.", result);
+        }
+        else {
+            bool result = ((array[index] <= val) && (array[index+1] > val));
+      //      fprintf(stderr, "valid index = %d val = %-9.5f [%-9.5f, %-9.5f] \n", index, val, array[index], array[index+1]);
+            mu_assert("binarySearch returned incorrect index.", result);
+        }
+
+    }
+
+    fprintf(stdout, "\nPASSED binarySearchUnitTest\n");
+    return NULL;
 }

@@ -30,11 +30,17 @@ extern char *randomUnitTest();
 bool sameNumber(double, double);
 void normalizeAngle(double *);
 
-inline double toDegrees(double);
-inline double toRadians(double);
+extern double toDegrees(double);
+extern double toRadians(double);
 extern void cartesianToCylindrical(const double, const double, double *, double *);
 extern void cylindricalToCartesian(double *, double *, const double, const double);
 extern char *conversionUnitTest();
-extern void colorToHex(char *, int, int, int);
+int binarySearch(double *, int, int, double);
+int descBinarySearch(double *, int, int, double);
+extern char *binarySearchUnitTest();
+extern int sign(double);
+extern void sortArray(double *, int);
+extern double relativePhi(double);
+extern int getSector(double);
 
 #endif /* magfieldutil_h */

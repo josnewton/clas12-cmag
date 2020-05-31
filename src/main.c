@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "magfield.h"
+#include "magfieldio.h"
 #include "munittest.h"
 #include "magfieldutil.h"
 #include "svg.h"
@@ -27,16 +28,19 @@ static char *allTests() {
     mu_run_test(gridUnitTest);
     mu_run_test(randomUnitTest);
     mu_run_test(conversionUnitTest);
+    mu_run_test(binarySearchUnitTest);
 
     fprintf(stdout, "\n  [TORUS]");
     testFieldPtr = torus;
     mu_run_test(compositeIndexUnitTest);
     mu_run_test(containsUnitTest);
+    mu_run_test(nearestNeighborUnitTest);
 
     testFieldPtr = solenoid;
     fprintf(stdout, "\n  [SOLENOID]");
     mu_run_test(compositeIndexUnitTest);
     mu_run_test(containsUnitTest);
+    mu_run_test(nearestNeighborUnitTest);
 
     fprintf(stdout, "\n ***** End of unit tests ******\n");
     return NULL;

@@ -60,6 +60,7 @@ void svgEnd(svg* psvg) {
     if(psvg->fd != NULL) {
         svgAppendString(psvg, "</svg>");
         psvg->finalized = true;
+        fflush(psvg->fd);
         fclose(psvg->fd);
         free(psvg);
     }
