@@ -56,13 +56,13 @@ typedef struct fieldmapheader {
     unsigned int fieldUnits;  // 0 for kG, 1 for G, 2 for T
     float q1min;  // min value of slowest varying coordinate
     float q1max;  // max value of slowest varying coordinate
-    unsigned int nq1; // num equally spaced in q1 direction including ends
+    unsigned int nq1; // numColors equally spaced in q1 direction including ends
     float q2min;  // min value of medium varying coordinate
     float q2max;  // max value of medium varying coordinate
-    unsigned int nq2; // num equally spaced in q2 direction including ends
+    unsigned int nq2; // numColors equally spaced in q2 direction including ends
     float q3min;  // min value of fastest varying coordinate
     float q3max;  // max value of fastest varying coordinate
-    unsigned int nq3; // num equally spaced in q3 direction including ends
+    unsigned int nq3; // numColors equally spaced in q3 direction including ends
     int cdHigh; //high word of unix creation date of map
     int cdLow; //low word of unix creation date of map
     unsigned int reserved3; //reserved
@@ -138,6 +138,8 @@ typedef struct cell2d {
 
 } Cell2D;
 
+typedef enum {TORUS, SOLENOID} FieldType;
+
 //holds the entire field map
 typedef struct magneticfield {
     FieldMapHeaderPtr headerPtr; //pointer to the header data
@@ -145,7 +147,7 @@ typedef struct magneticfield {
     char *path; //the path to the file
     char *name; //a descriptive name
     bool symmetric; //is this a symmetric grid (solenoid always is)
-    enum fieldType {TORUS, SOLENOID} type; //type of field
+    FieldType  type;
     char *creationDate;  //date the map was created
     unsigned int numValues;  //total number of field values
 
@@ -173,26 +175,21 @@ typedef struct magneticfield {
 } MagneticField;
 
 // external function prototypes
-
 extern int getCompositeIndex(MagneticFieldPtr, int, int, int);
 extern void invertCompositeIndex(MagneticFieldPtr fieldPtr, int index, int *phiIndex, int *rhoIndex, int *zIndex);
 extern char *compositeIndexUnitTest();
 extern char *containsUnitTest();
 extern char *nearestNeighborUnitTest();
-
 extern FieldValuePtr getFieldAtIndex(MagneticFieldPtr, int );
 extern void getFieldValue(FieldValuePtr, double, double, double, MagneticFieldPtr);
 extern void getCompositeFieldValue(FieldValuePtr, double, double, double, MagneticFieldPtr, MagneticFieldPtr);
 extern void setAlgorithm(enum Algorithm);
 bool containsCartesian(MagneticFieldPtr, double, double, double);
 bool containsCylindrical(MagneticFieldPtr, double, double);
-
 extern void resetCell3D(Cell3DPtr, double, double, double);
 extern void resetCell2D(Cell2DPtr, double, double);
-
 extern void getCoordinateIndices(MagneticFieldPtr, double, double, double,
                           int *, int *, int *);
 
-extern void createSVGImage(char *, MagneticFieldPtr torus, MagneticFieldPtr solenoid);
 
 #endif /* magfield_h */

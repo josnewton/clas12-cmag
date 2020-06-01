@@ -1,6 +1,6 @@
 //
 //  maggrid.c
-//  cMag
+//  @file
 //
 //  Created by David Heddle on 5/22/20.
 //

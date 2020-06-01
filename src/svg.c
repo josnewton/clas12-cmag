@@ -4,9 +4,6 @@
 //
 
 #include"svg.h"
-#include<stdlib.h>
-#include<stdbool.h>
-#include<stdio.h>
 
 /**
  * Append a string to the open svg file.

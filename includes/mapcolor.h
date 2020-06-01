@@ -8,7 +8,7 @@
 typedef struct colormap *ColorMapPtr;
 
 typedef struct colormap {
-    int num; //number of colors in map
+    int numColors; //number of colors in map
     char *tooSmallColor; //for values < min value
     char *tooBigColor; //for values > max value
 
@@ -17,9 +17,7 @@ typedef struct colormap {
 } ColorMap;
 
 //external ptototypes
-extern void colorToHex(char *, int, int, int);
 extern char *getColor(ColorMapPtr, double);
-extern ColorMapPtr createColorMap(int, char **, double *);
 
 extern ColorMapPtr defaultColorMap();
 #endif //CMAG_MAPCOLOR_H

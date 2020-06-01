@@ -15,7 +15,10 @@
 #include <time.h>
 
 //used for comparing real numbers
-double const TINY = 1.0e-10;
+double const TINY = 1.0e-8;
+
+//this is used by the minimal unit testing
+int mtests_run = 0;
 
 //used for degrees <--> radians;
 const double PIOVER180 = M_PI/180.;
@@ -28,7 +31,6 @@ const char *fieldUnitLabels[] = { "kG", "G", "T" };
 
 //local prototypes
 static void freeGrid(GridPtr gridPtr);
-static void resetCell(Cell3D *);
 
 /**
  * Convert an angle from radians to degrees.
@@ -197,7 +199,7 @@ void printFieldSummary(MagneticFieldPtr fieldPtr, FILE *stream) {
     fprintf(stream, "%s\n", gridStr(fieldPtr->rhoGridPtr));
     fprintf(stream, "%s\n", gridStr(fieldPtr->zGridPtr));
 
-    fprintf(stream, "num field values: %d\n", fieldPtr->numValues);
+    fprintf(stream, "numColors field values: %d\n", fieldPtr->numValues);
     fprintf(stream, "grid cs: %s\n", csLabels[headerPtr->gridCS]);
     fprintf(stream, "field cs: %s\n", csLabels[headerPtr->fieldCS]);
     fprintf(stream, "length unit: %s\n",
@@ -391,7 +393,6 @@ char *randomUnitTest() {
     int maxVal = 301;
 
     int count = 100000;
-    bool result;
 
     for (int i = 0; i < count; i++) {
         int val = randomInt(minVal, maxVal);

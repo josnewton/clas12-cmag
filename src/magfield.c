@@ -8,12 +8,9 @@
 #include "magfield.h"
 #include "magfieldutil.h"
 #include "munittest.h"
-#include "svg.h"
-#include "mapcolor.h"
 #include "testdata.h"
 
 #include <stdlib.h>
-#include <time.h>
 #include <math.h>
 
 //used for unit testing only
@@ -33,16 +30,12 @@ static bool containedInCell2D(Cell2DPtr, double, double);
 static void getFieldValueTorus(FieldValuePtr, double, double, double, MagneticFieldPtr);
 static void getFieldValueSolenoid(FieldValuePtr, double, double, double, MagneticFieldPtr);
 
-static void rotatePhi(double phi, FieldValuePtr fieldValuePtr);
-
 static void torusCalculate(FieldValuePtr,
                            double,
                            double,
                            double,
                            MagneticFieldPtr);
 
-//this is used by the minimal unit testing
-int mtests_run = 0;
 
 /**
  * Set the global option for the algorithm used to extract field values.
@@ -63,8 +56,8 @@ void setAlgorithm(enum Algorithm algorithm) {
  * NOTE: this assumes, as is the case at the time of writing, that the CLAS12 fields have grids
  * in cylindrical coordinates and length units of cm.
  * @param fieldPtr
- * @param rho the rho (q2) coordinate in cm.
- * @param z the z (q3) coordinate in cm.
+ * @param rho the rho coordinate in cm.
+ * @param z the z coordinate in cm.
  * @return true if the point is within the boundary of the field.
  */
 bool containsCylindrical(MagneticFieldPtr fieldPtr, double rho, double z) {
@@ -284,7 +277,7 @@ void getFieldValue(FieldValuePtr fieldValuePtr,
     //here is where we apply any shifts
     x -= fieldPtr->shiftX;
     y -= fieldPtr->shiftY;
-    z -= fieldPtr->shiftX;
+    z -= fieldPtr->shiftZ;
 
     //see if we are contained
     double rho = hypot(x, y);
@@ -447,22 +440,6 @@ void getFieldValueSolenoid(FieldValuePtr fieldValuePtr,
 }
 
 /**
- * Rotate the field about z
- * @param phi the azimuthal angle in degrees
- * @param fieldValuePtr holds the field value that will be rotated
- */
-static void rotatePhi(double phi, FieldValuePtr fieldValuePtr) {
-    double phiRad = toRadians(phi);
-    double cp = cos(phiRad);
-    double sp = sin(phiRad);
-    double bPhi = fieldValuePtr->b1;
-    double bRho = fieldValuePtr->b2;
-
-    fieldValuePtr->b1 = bRho*cp - bPhi*sp;
-    fieldValuePtr->b2 = bRho*sp + bPhi*cp;
-}
-
-/**
  * Obtain the combined value of two fields. The field
  * is obtained by tri-linear interpolation or nearest neighbor, depending on settings.
  * @param fieldValuePtr should be a valid pointer to a FieldValue. Upon
@@ -491,11 +468,15 @@ void getCompositeFieldValue(FieldValuePtr fieldValuePtr,
 
     FieldValue temp;
 
-    getFieldValue(fieldValuePtr, x, y, z, field1);
-    getFieldValue(&temp, x, y, z, field2);
-    fieldValuePtr->b1 += temp.b1;
-    fieldValuePtr->b2 += temp.b2;
-    fieldValuePtr->b3 += temp.b3;
+    if (field1 != NULL) {
+        getFieldValue(fieldValuePtr, x, y, z, field1);
+    }
+    if (field2 != NULL) {
+        getFieldValue(&temp, x, y, z, field2);
+        fieldValuePtr->b1 += temp.b1;
+        fieldValuePtr->b2 += temp.b2;
+        fieldValuePtr->b3 += temp.b3;
+    }
 }
 
 
@@ -572,7 +553,6 @@ char *nearestNeighborUnitTest() {
     double resolution = 0.1;   //gauss
 
     setAlgorithm(NEAREST_NEIGHBOR);
-    double *data = (double *)malloc(6 * sizeof(double));
     FieldValuePtr fieldValuePtr = (FieldValuePtr) malloc (sizeof(FieldValue));
 
     if (testFieldPtr->type == TORUS) {
@@ -580,7 +560,7 @@ char *nearestNeighborUnitTest() {
     }
     else { //solenoid
         for (int i = 0; i < ARRAYSIZE(solenoidNN); i++) {
-            data = solenoidNN[i];
+            double *data = solenoidNN[i];
             getFieldValue(fieldValuePtr, data[0], data[1], data[2], testFieldPtr);
 
             //test data in Gauss
@@ -661,7 +641,6 @@ char *containsUnitTest() {
         result = !containsCartesian(testFieldPtr, x, y, z);
         mu_assert("The (outside) boundary contains test failed (B).", result);
 
-        rho = randomDouble(testFieldPtr->rhoGridPtr->minVal, testFieldPtr->rhoGridPtr->maxVal);
         z = randomDouble(testFieldPtr->zGridPtr->maxVal + 0.01, 2000);
 
         result = !containsCartesian(testFieldPtr, x, y, z);
@@ -711,107 +690,6 @@ FieldValuePtr getFieldAtIndex(MagneticFieldPtr fieldPtr, int compositeIndex) {
     }
     return fieldPtr->fieldValues + compositeIndex;
 }
-
-/**
- * Create an SVG image of the fields. Not much flexibility here. Will
- * make the canonical Bmag plot sector 1 midplane, so
- * x (vertical): [0, 360], y = 0, z (horizontal) [-100, 500]. So the
- * svg image is 600 x 360. The pixel size is 2x2.
- * @param path the path to the svg file.
- * @param fieldPtr the first (and perhaps the only) of
- * @param ... the continuation of the the list of field pointers.
- */
-void createSVGImage(char *path, MagneticFieldPtr torus, MagneticFieldPtr solenoid) {
-
-    ColorMapPtr colorMap = defaultColorMap();
-
-    int zmin = -100;
-    int zmax = 500;
-    int xmin = 0;
-    int xmax = 360;
-
-    int del = 2;
-
-    int marginLeft =  50;
-    int marginRight =  50;
-    int marginTop =  50;
-    int marginBottom =  50;
-
-    int imageWidth = zmax - zmin;
-    int imageHeight = xmax - xmin;
-    int width = imageWidth + marginLeft + marginRight;
-    int height = imageHeight + marginTop + marginBottom;
-
-    svg* psvg;
-    psvg = svgStart(path, width, height);
-
-    svgFill(psvg, "white");
-
-
-    fprintf(stdout, "\nStarting svg image creation for: [%s]", path);
-
-    FieldValuePtr fieldValuePtr = (FieldValuePtr) malloc(sizeof (FieldValue));
-
-    int x = xmin+del;
-    while (x < xmax+del) {
-        if ((x % 50) == 0) {
-            fprintf(stdout, ".");
-        }
-        int xPic = marginTop + imageHeight - x; //x is vertical
-        int z = zmin;
-        while (z < zmax) {
-
-            int zPic = z - zmin + marginLeft;
-
-            getCompositeFieldValue(fieldValuePtr, x, 0, z, torus, solenoid);
-            double magnitude = fieldMagnitude(fieldValuePtr);
-
-            char *color = getColor(colorMap, magnitude);
-            svgRectangle(psvg, del, del, zPic, xPic, color, "none", 0, 0, 0);
-
-            z += del;
-        }
-        x += del;
-    }
-
-    free(fieldValuePtr);
-
-    //border
-    svgRectangle(psvg, imageWidth, imageHeight, marginLeft, marginTop, "none", "black", 1, 0, 0);
-
-    char *label = (char *) malloc(40);
-
-
-    int z = marginLeft - 14;
-    x = xmin;
-    while (x <= xmax) {
-        int xPic = x - xmin + marginTop;
-
-        sprintf(label, "%d", xmax - x);
-        svgRotatedText(psvg, z, xPic+8, "times", 12, "black", "none", -90, label);
-        svgLine(psvg, "#cccccc", 1, marginLeft, xPic, marginLeft+imageWidth, xPic);
-        x += 60;
-    }
-
-
-    z = zmin;
-    x = marginTop + imageHeight + 20;
-    while (z <= zmax) {
-
-        int zPic = z - zmin + marginLeft;
-        sprintf(label, "%d", z);
-        svgText(psvg, zPic-12, x, "times", 12, "black", "none", label);
-        svgLine(psvg, "#cccccc", 1, zPic, marginTop, zPic, marginTop+imageHeight);
-
-        z += 100;
-    }
-    free(label);
-
-    svgEnd(psvg);
-
-    fprintf(stdout, "done.\n");
-}
-
 
 
 

@@ -5,9 +5,7 @@
 
 #include "mapcolor.h"
 #include "magfieldutil.h"
-#include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 
 /**
  * Get a color from a color map.
@@ -20,19 +18,19 @@ char *getColor(ColorMapPtr cmapPtr, double value) {
     //the values are in descending order
 
     if (value > cmapPtr->values[0]) {
-        return cmapPtr->tooBigColor;
+        return "black";
     }
-    if (value <= cmapPtr->values[cmapPtr->num]) {
-        return cmapPtr->tooSmallColor;
+    if (value <= cmapPtr->values[cmapPtr->numColors]) {
+        return "white";
     }
 
     int index;
-    for (index = 0; index < cmapPtr->num; index++) {
+    for (index = 0; index < cmapPtr->numColors; index++) {
         if (cmapPtr->values[index+1] < value) {
             break;
         }
     }
-    return cmapPtr->colors[72-index];
+    return cmapPtr->colors[index];
 }
 
 
@@ -45,25 +43,24 @@ ColorMapPtr defaultColorMap() {
     ColorMapPtr cmapPtr = (ColorMapPtr) malloc(sizeof(ColorMap));
 
     int colorlen = 73;
-    cmapPtr->num = colorlen;
+    cmapPtr->numColors = colorlen;
     stringCopy(&(cmapPtr->tooSmallColor), "#ffffff");
     stringCopy(&(cmapPtr->tooBigColor), "#000000");
 
     char* colors[] = {
-            "#fef4f2", "#fdf1e4", "#fbf1e4", "#f9f1e4", "#f7f1e4", "#f5f1e4",
-            "#f3f1e4", "#f1f1e4", "#dff1e4", "#ddf1e4", "#dbf1e4", "#d9f1e4",
-            "#dcf1e4",
-            "#d7f1e4", "#d4eee4", "#cbeae5", "#c2e7e5", "#b9e4e5",
-            "#b0e0e6", "#a1dad2", "#92d3bd", "#82cca8", "#73c593", "#63be7e",
-            "#54b769", "#44b054", "#35a93f", "#25a22a", "#2fa22b", "#3aa12c",
-            "#44a02d", "#4f9f2e", "#599f2f", "#649e30", "#6e9d30", "#799c32",
-            "#849b33", "#91a62e", "#9fb128", "#adbc22", "#bac71d", "#c8d217",
-            "#d6dd11", "#e3e80c", "#f1f306", "#ffff00", "#fff100", "#ffe300",
-            "#ffd500", "#ffc700", "#ffb900", "#ffab00", "#ff9d00", "#ff8f00",
-            "#ff8000", "#ff7200", "#ff6400", "#ff5600", "#ff4800", "#ff3900",
-            "#ff2b00", "#ff1d00", "#ff0f00", "#ff0000", "#f1000e", "#e3001c",
-            "#d5002a", "#c70038", "#b80046", "#aa0054", "#9c0062", "#8e0070",
-            "#7f007f"};
+            "#7f007f","#8e0070","#9c0062","#aa0054","#b80046","#c70038",
+            "#d5002a","#e3001c","#f1000e","#ff0000","#ff0f00","#ff1d00",
+            "#ff2b00","#ff3900","#ff4800","#ff5600","#ff6400","#ff7200",
+            "#ff8000","#ff8f00","#ff9d00","#ffab00","#ffb900","#ffc700",
+            "#ffd500","#ffe300","#fff100","#ffff00","#f1f306","#e3e80c",
+            "#d6dd11","#c8d217","#bac71d","#adbc22","#9fb128","#91a62e",
+            "#849b33","#799c32","#6e9d30","#649e30","#599f2f","#4f9f2e",
+            "#44a02d","#3aa12c","#2fa22b","#25a22a","#35a93f","#44b054",
+            "#54b769","#63be7e","#73c593","#82cca8","#92d3bd","#a1dad2",
+            "#b0e0e6","#b9e4e5","#c2e7e5","#cbeae5","#d4eee4","#d7f1e4",
+            "#dcf1e4","#d9f1e4","#dbf1e4","#ddf1e4","#dff1e4","#f1f1e4",
+            "#f3f1e4","#f5f1e4","#f7f1e4","#f9f1e4","#fbf1e4","#fdf1e4",
+            "#fef4f2"};
 
 
 

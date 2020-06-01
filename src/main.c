@@ -13,10 +13,11 @@
 #include "magfieldio.h"
 #include "munittest.h"
 #include "magfieldutil.h"
-#include "svg.h"
+#include "magfielddraw.h"
 
-//the two fields we'll try to initialize
-static MagneticFieldPtr torus;
+//the three fields we'll try to initialize
+static MagneticFieldPtr symmetricTorus;
+static MagneticFieldPtr fullTorus;
 static MagneticFieldPtr solenoid;
 
 /**
@@ -30,8 +31,14 @@ static char *allTests() {
     mu_run_test(conversionUnitTest);
     mu_run_test(binarySearchUnitTest);
 
-    fprintf(stdout, "\n  [TORUS]");
-    testFieldPtr = torus;
+    fprintf(stdout, "\n  [SYMMETRIC TORUS]");
+    testFieldPtr = symmetricTorus;
+    mu_run_test(compositeIndexUnitTest);
+    mu_run_test(containsUnitTest);
+    mu_run_test(nearestNeighborUnitTest);
+
+    fprintf(stdout, "\n  [FULL  TORUS]");
+    testFieldPtr = fullTorus;
     mu_run_test(compositeIndexUnitTest);
     mu_run_test(containsUnitTest);
     mu_run_test(nearestNeighborUnitTest);
@@ -58,7 +65,8 @@ int main(int argc, const char * argv[]) {
     
     //paths to field maps
     char *solenoidPath = (char*) malloc(255);
-    char *torusPath = (char*) malloc(255);
+    char *torusSymmetricPath = (char*) malloc(255);
+    char *torusFullPath = (char*) malloc(255);
 
 
     //for testing will look for mag fields in either the first
@@ -74,15 +82,24 @@ int main(int argc, const char * argv[]) {
         dataDir = strcat(getenv("HOME"), "/magfield");
     }
 
+    //build the full paths
     sprintf(solenoidPath, "%s/Symm_solenoid_r601_phi1_z1201_13June2018.dat", dataDir);
-    sprintf(torusPath, "%s/Symm_torus_r2501_phi16_z251_24Apr2018.dat", dataDir);
+    sprintf(torusSymmetricPath, "%s/Symm_torus_r2501_phi16_z251_24Apr2018.dat", dataDir);
+    sprintf(torusFullPath, "%s/Full_torus_r251_phi181_z251_03March2020.dat", dataDir);
 
     fprintf(stdout, "\nTesting the cMag library\n");
 
-    //try to read the torus
-    torus = initializeTorus(torusPath);
-    if (torus == NULL) {
-        fprintf(stderr, "\ncMag ERROR failed to read torus map from [%s]\n", torusPath);
+    //try to read the symmetric torus
+    symmetricTorus = initializeTorus(torusSymmetricPath);
+    if (symmetricTorus == NULL) {
+        fprintf(stderr, "\ncMag ERROR failed to read symmetric torus map from [%s]\n", torusSymmetricPath);
+        return 1;
+    }
+
+    //try to read the full torus
+    fullTorus = initializeTorus(torusFullPath);
+    if (fullTorus == NULL) {
+        fprintf(stderr, "\ncMag ERROR failed to read full torus map from [%s]\n", torusFullPath);
         return 1;
     }
 
@@ -95,17 +112,7 @@ int main(int argc, const char * argv[]) {
     }
     
     //run the unit tests
-    testFieldPtr = torus; //used for unit test
     char *testResult = allTests();
-
-
-  //  setAlgorithm(NEAREST_NEIGHBOR);
-
-  //  FieldValuePtr fieldValuePtr = (FieldValuePtr) malloc(sizeof (FieldValue));
-  //  getCompositeFieldValue(fieldValuePtr, 200, 200, 300, torus, solenoid);
-  //  free (fieldValuePtr);
-
-
 
     if (testResult != NULL) {
         fprintf(stdout, "Unit test failed: [%s]\n", testResult);
@@ -114,16 +121,22 @@ int main(int argc, const char * argv[]) {
         fprintf(stdout, "\nProgram ran successfully.\n");
     }
 
-    //create the picture
+    //create some pictures
     char *home = getenv("HOME");
     char *picPath = (char*) malloc(255);
     sprintf(picPath, "%s/%s", home, "magfield.svg");
-    createSVGImage(picPath, torus, solenoid);
-  //  svgTest();
+    createSVGImageFixedPhi(picPath, 0, fullTorus, solenoid);
 
-    //make sure the frees don't blow up
-    freeFieldMap(torus);
+    sprintf(picPath, "%s/%s", home, "magfieldZ.svg");
+    createSVGImageFixedZ(picPath, 375, fullTorus, solenoid);
+
+    free(picPath);
+
+    //free the fieldmaps
+    freeFieldMap(symmetricTorus);
+    freeFieldMap(fullTorus);
     freeFieldMap(solenoid);
+
 
     return (testResult == NULL) ? 0 : 1;
 }

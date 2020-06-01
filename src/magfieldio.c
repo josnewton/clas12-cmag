@@ -3,12 +3,10 @@
 //
 
 #include "magfieldio.h"
-#include "magfield.h"
 #include "magfieldutil.h"
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
-#include <stdbool.h>
 
 //do we have to swap bytes?
 //since the fields were produced by Java which uses
