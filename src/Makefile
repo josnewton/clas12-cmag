@@ -29,13 +29,22 @@
              maggrid.c\
              magfield.c\
              magfieldutil.c\
+             mapcolor.c \
+             magfielddraw.c \
+             magfieldio.c \
+             svg.c \
+             testdata.c \
              main.c
 
         LIBSRCS = \
-             maggrid.c\
-             magfield.c\
-             magfieldutil.c\
-
+              maggrid.c\
+              magfield.c\
+              magfieldutil.c\
+              mapcolor.c \
+              magfielddraw.c \
+              magfieldio.c \
+              svg.c \
+              testdata.c
 #---------------------------------------------------------------------
 # The object files (via macro substitution)
 #---------------------------------------------------------------------
