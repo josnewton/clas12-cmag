@@ -182,6 +182,8 @@ extern char *containsUnitTest();
 extern char *nearestNeighborUnitTest();
 extern FieldValuePtr getFieldAtIndex(MagneticFieldPtr, int );
 extern void getFieldValue(FieldValuePtr, double, double, double, MagneticFieldPtr);
+extern void getFieldValueTorus(FieldValuePtr, double, double, double, MagneticFieldPtr);
+extern void getFieldValueSolenoid(FieldValuePtr, double, double, double, MagneticFieldPtr);
 extern void getCompositeFieldValue(FieldValuePtr, double, double, double, MagneticFieldPtr, MagneticFieldPtr);
 extern void setAlgorithm(enum Algorithm);
 bool containsCartesian(MagneticFieldPtr, double, double, double);
@@ -193,3 +195,4 @@ extern void getCoordinateIndices(MagneticFieldPtr, double, double, double,
 
 
 #endif /* magfield_h */
+
