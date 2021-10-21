@@ -22,46 +22,9 @@ static MagneticFieldPtr symmetricTorus;
 static MagneticFieldPtr fullTorus;
 static MagneticFieldPtr solenoid;
 
-/**
- * Run the unit tests
- * return: NULL or the first failed test message
- */
-static char *allTests() {
-    fprintf(stdout, "\n\n***** Unit tests ****** \n");
-    mu_run_test(gridUnitTest);
-    mu_run_test(randomUnitTest);
-    mu_run_test(conversionUnitTest);
-    mu_run_test(binarySearchUnitTest);
-
-    fprintf(stdout, "\n  [SYMMETRIC TORUS]");
-    testFieldPtr = symmetricTorus;
-    mu_run_test(compositeIndexUnitTest);
-    mu_run_test(containsUnitTest);
-    mu_run_test(nearestNeighborUnitTest);
-
-    fprintf(stdout, "\n  [FULL  TORUS]");
-    testFieldPtr = fullTorus;
-    mu_run_test(compositeIndexUnitTest);
-    mu_run_test(containsUnitTest);
-    mu_run_test(nearestNeighborUnitTest);
-
-    testFieldPtr = solenoid;
-    fprintf(stdout, "\n  [SOLENOID]");
-    mu_run_test(compositeIndexUnitTest);
-    mu_run_test(containsUnitTest);
-    mu_run_test(nearestNeighborUnitTest);
-
-    fprintf(stdout, "\n ***** End of unit tests ******\n");
-    return NULL;
-}
 
 /**
  * The main method of the test application.
- * @param argc the number of arguments
- * @param argv the command line argument. Only one is processed, the path
- * to the directory containing the magnetic fields. If that argument is missing,
- * it will look in $(HOME)/magfield.
- * @return 0 on successful completion, 1 if any error occurred.
  */
 int main(int argc, const char * argv[]) {
     
@@ -154,6 +117,9 @@ int main(int argc, const char * argv[]) {
     return 0;
     //return (testResult == NULL) ? 0 : 1;
 }
+
+
+
 
 
 
