@@ -1,5 +1,4 @@
-//
-//  main.c
+
 //  cMag
 //
 //  Created by David Heddle on 5/22/20.
@@ -9,11 +8,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 #include "magfield.h"
 #include "magfieldio.h"
 #include "munittest.h"
 #include "magfieldutil.h"
 #include "magfielddraw.h"
+#include "svg.h"
+#include "mapcolor.h"
 
 //the three fields we'll try to initialize
 static MagneticFieldPtr symmetricTorus;
@@ -110,36 +112,52 @@ int main(int argc, const char * argv[]) {
                 solenoidPath);
         return 1;
     }
+
+
+
+
+    FieldValuePtr torusValuePtr = (FieldValuePtr) malloc(sizeof (FieldValue));
+    FieldValuePtr solenoidValuePtr = (FieldValuePtr) malloc(sizeof (FieldValue));
+    FieldValuePtr combinedValuePtr = (FieldValuePtr) malloc(sizeof (FieldValue));    
+
+    double rho = 60.0;
+    double phi = 0.0;
+    double z = 400.0;
+
+    double phiRad = toRadians(phi);
+    double cosPhi = cos(phiRad);
+    double sinPhi = sin(phiRad);
+
+    double rhoRad = toRadians(rho);
+    double cosRho = cos(phiRad);
+    double sinRho = sin(phiRad);
+
+    //getFieldValueTorus(torusValuePtr, phiRad, rhoRad, z, fullTorus);
+    //getFieldValueSolenoid(solenoidValuePtr, phiRad, rhoRad, z, solenoid);
+
+    getCompositeFieldValue(combinedValuePtr, rho*cosPhi, rho*sinPhi, z, fullTorus, solenoid);
+    double magnitude = fieldMagnitude(combinedValuePtr);
     
-    //run the unit tests
-    char *testResult = allTests();
+    //double tbx = torusValuePtr->b1;
+    //double tby = torusValuePtr->b2;
+    //double tbz = torusValuePtr->b3;
 
-    if (testResult != NULL) {
-        fprintf(stdout, "Unit test failed: [%s]\n", testResult);
-    }
-    else {
-        fprintf(stdout, "\nProgram ran successfully.\n");
-    }
-
-    //create some pictures
-    char *home = getenv("HOME");
-    char *picPath = (char*) malloc(255);
-    sprintf(picPath, "%s/%s", home, "magfield.svg");
-    createSVGImageFixedPhi(picPath, 0, fullTorus, solenoid);
-
-    sprintf(picPath, "%s/%s", home, "magfieldZ.svg");
-    createSVGImageFixedZ(picPath, 375, fullTorus, solenoid);
-
-    free(picPath);
-
-    //free the fieldmaps
-    freeFieldMap(symmetricTorus);
-    freeFieldMap(fullTorus);
-    freeFieldMap(solenoid);
+    //double sbx = solenoidValuePtr->b1;
+    //double sby = solenoidValuePtr->b2;
+    //double sbz = solenoidValuePtr->b3;
 
 
-    return (testResult == NULL) ? 0 : 1;
+    printf("\n", 0.0);
+    printf("\n", 0.0);
+    printf("Total Field Magnitude is %lf \n", magnitude);
+
+    return 0;
+    //return (testResult == NULL) ? 0 : 1;
 }
+
+
+
+
 
 
 
