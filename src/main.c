@@ -2,8 +2,7 @@
 //  cMag
 //
 //  Created by David Heddle on 5/22/20.
-//  The main program runs the unit tests.
-//
+//  Modified By Joseph Newton to test simple functions that read and calculate the Torus & Solenoid Field Values
 
 #include <stdio.h>
 #include <string.h>
