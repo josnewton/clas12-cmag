@@ -27,8 +27,8 @@ static double sinSect[] = { NAN, 0, ROOT3OVER2, ROOT3OVER2, 0, -ROOT3OVER2, -ROO
 static bool containedInCell3D(Cell3DPtr, double, double, double);
 static bool containedInCell2D(Cell2DPtr, double, double);
 
-static void getFieldValueTorus(FieldValuePtr, double, double, double, MagneticFieldPtr);
-static void getFieldValueSolenoid(FieldValuePtr, double, double, double, MagneticFieldPtr);
+//static void getFieldValueTorus(FieldValuePtr, double, double, double, MagneticFieldPtr);
+//static void getFieldValueSolenoid(FieldValuePtr, double, double, double, MagneticFieldPtr);
 
 static void torusCalculate(FieldValuePtr,
                            double,
